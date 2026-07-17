@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { calcTotals } from '@/lib/pricing'
-import { snapToStep, roundQuantity, minQuantityFor } from '@/lib/units'
+import { normalizeQuantity, roundQuantity, minQuantityFor } from '@/lib/units'
 
 // How many of `item` may be in the cart. null = unlimited (no stock tracking,
 // or backorders allowed).
@@ -12,22 +12,19 @@ export function maxQuantityFor(item) {
   return Number(item.stock)
 }
 
-// Snaps to the unit's step (0.5 kg / 1 piece) and caps at stock. Repeated
-// += 0.5 on floats drifts, and create-order rejects a fractional quantity on a
-// per-piece product — both are handled by snapping every write.
+// Normalise every write, then cap it at stock.
+//
+// kg is NOT snapped to a grid — 8.7 kg stays 8.7 kg. Feed is weighed out, so
+// any 3dp weight is a real order; an earlier version snapped to 0.5 and would
+// have silently sold someone 8.5 kg (and charged for 8.5) when they asked for
+// 8.7. See lib/units.js.
 const clamp = (item, quantity) => {
-  // Floor at the minimum FIRST: snapping rounds toward the nearest step, so
-  // 0.1 kg snaps to 0 — which would leave a line sitting in the cart with a
-  // quantity of zero.
-  const snapped = Math.max(
-    snapToStep(quantity, item?.unit_type),
-    minQuantityFor(item?.unit_type)
-  )
+  const normalized = normalizeQuantity(quantity, item?.unit_type)
   const max = maxQuantityFor(item)
-  if (max === null) return snapped
-  // The cap itself may sit off-grid (stock 2.3 kg), so snap it down rather than
-  // offering a quantity that isn't sellable.
-  return Math.min(snapped, roundQuantity(max))
+  if (max === null) return normalized
+  // Stock is itself a weight (2.3 kg), so the cap is used as-is rather than
+  // rounded onto a grid the product doesn't have.
+  return Math.min(normalized, roundQuantity(max))
 }
 
 // Cart Store with localStorage persistence.

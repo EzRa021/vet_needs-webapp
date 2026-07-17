@@ -9,13 +9,16 @@ import {
   isKg,
   stepFor,
   minQuantityFor,
-  snapToStep,
+  normalizeQuantity,
   roundQuantity,
 } from "@/lib/units"
 
-// Quantity stepper that knows kg from pieces: feed steps in 0.5 kg and can be
-// typed (nobody wants to press + fourteen times for 7 kg); pieces step in whole
-// units and stay read-only.
+// Quantity stepper that knows kg from pieces.
+//
+// kg is CONTINUOUS: feed is weighed out, so 0.3 / 8.7 / 12.25 are all real
+// orders. Typing is the primary input and is honoured exactly (to 3dp); ± is a
+// 0.5 nudge for convenience, not a grid the value must land on. Pieces step in
+// whole units and stay read-only.
 export default function QuantityInput({
   value,
   onChange,
@@ -39,9 +42,11 @@ export default function QuantityInput({
       setDraft(String(value))
       return
     }
-    let next = snapToStep(n, unitType)
-    if (next < min) next = min
-    if (max !== null && next > max) next = snapToStep(max, unitType)
+    // Typed weights are honoured as typed (to 3dp). 8.7 kg stays 8.7 — snapping
+    // it onto the ± step would change both the amount and the price on a
+    // per-kg product, silently.
+    let next = normalizeQuantity(n, unitType)
+    if (max !== null && next > max) next = normalizeQuantity(max, unitType)
     setDraft(String(next))
     onChange(next)
   }

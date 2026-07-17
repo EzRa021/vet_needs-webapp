@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const SORTABLE = new Set(['name', 'price', 'stock', 'created_at', 'updated_at'])
 
@@ -48,6 +49,41 @@ function buildPayload(body) {
   if ('category_id' in body) {
     out.category_id = body.category_id || null
   }
+
+  // attributes: a free-form key/value bag that drives the product page's spec
+  // table AND the shop's facets (013). It wasn't in this whitelist, so only the
+  // seed data ever had any — a product created through the admin could never be
+  // filtered by bag size or life stage.
+  //
+  // Keys are constrained to \w because they become jsonb paths in the facet
+  // filter (`attributes->>bag_size`) and are rendered as labels. Values are
+  // stringified: a facet compares text, and "10" vs 10 would be two facets.
+  if ('attributes' in body) {
+    const raw = body.attributes && typeof body.attributes === 'object' ? body.attributes : {}
+    const cleaned = {}
+    for (const [k, v] of Object.entries(raw).slice(0, 30)) {
+      const key = String(k).trim()
+      if (!/^\w{1,40}$/.test(key)) continue
+      const value = String(v ?? '').trim().slice(0, 200)
+      if (!value) continue // an empty attribute is noise on the page and a dead facet
+      cleaned[key] = value
+    }
+    out.attributes = cleaned
+  }
+
+  // tags: weighted into the search vector (012, weight C) and shown on the
+  // product page. Same story — no form ever set them.
+  if ('tags' in body) {
+    const arr = Array.isArray(body.tags) ? body.tags : []
+    out.tags = [
+      ...new Set(
+        arr
+          .map((t) => String(t).trim().toLowerCase().slice(0, 40))
+          .filter(Boolean)
+      ),
+    ].slice(0, 30)
+  }
+
   return out
 }
 
@@ -70,11 +106,17 @@ export async function GET(request) {
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit')) || 20, 1), 100)
     const offset = (page - 1) * limit
 
+    // Service role for the read: 023 revoked cost_price from authenticated, so
+    // the staff session can no longer `select('*')` it — but staff legitimately
+    // need it to edit. getStaffUser() above is the gate; the admin client does
+    // the read. Same pattern as orders (010).
+    const admin = createAdminClient()
+
     // Admin sees inactive products too — no is_active filter by default.
     // NOTE: the FK must be named explicitly. item_categories (the optional
     // multi-placement junction) creates a SECOND items↔categories path, so a
     // bare `categories(...)` embed is ambiguous and PostgREST errors (PGRST201).
-    let query = supabase
+    let query = admin
       .from('items')
       .select('*, category:categories!items_category_id_fkey(id, name, path)', {
         count: 'exact',
@@ -127,7 +169,10 @@ export async function POST(request) {
   if (auth.error) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
-  const { supabase } = auth
+  // Service role: the insert writes cost_price, and the trailing `.select()`
+  // reads it back — both blocked for the staff session after 023. Staff-gated
+  // above; write below.
+  const admin = createAdminClient()
 
   try {
     const body = await request.json()
@@ -140,7 +185,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Price is required' }, { status: 400 })
     }
 
-    const { data, error } = await supabase.from('items').insert([payload]).select().single()
+    const { data, error } = await admin.from('items').insert([payload]).select().single()
     if (error) {
       return NextResponse.json({ error: friendlyItemError(error) }, { status: 400 })
     }

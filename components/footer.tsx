@@ -13,11 +13,13 @@ import {
   ShieldCheck,
   Send,
   Loader2,
+  MessageCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { LEGAL, whatsappLink } from "@/lib/legal"
 
 const SHOP_LINKS = [
   { label: "All Products", href: "/shop" },
@@ -39,6 +41,7 @@ const SUPPORT_LINKS = [
 
 export default function Footer() {
   const { toast } = useToast()
+  const whatsapp = whatsappLink("Hi PetDo — I have a question about")
   const [email, setEmail] = useState("")
   const [subscribing, setSubscribing] = useState(false)
   const [honeypot, setHoneypot] = useState("") // bots fill this; humans can't see it
@@ -200,12 +203,25 @@ export default function Footer() {
               </p>
               <p className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0" />
-                support@petdo.ng
+                {LEGAL.supportEmail}
               </p>
               <p className="flex items-center gap-2">
                 <Phone className="h-4 w-4 shrink-0" />
-                +234 800 000 0000
+                {LEGAL.supportPhone}
               </p>
+              {/* Click-to-chat: customer-initiated, so no API, no approval, no
+                  risk to the number. Renders only once a real number is set. */}
+              {whatsapp && (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 font-medium text-success transition-colors hover:bg-success/20"
+                >
+                  <MessageCircle className="h-4 w-4 shrink-0" />
+                  Chat on WhatsApp
+                </a>
+              )}
             </div>
           </div>
         </div>

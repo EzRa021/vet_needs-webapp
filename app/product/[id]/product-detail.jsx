@@ -18,6 +18,7 @@ import WishlistButton from "@/components/wishlist-button"
 import ProductReviews from "@/components/product-reviews"
 import QuantityInput from "@/components/quantity-input"
 import ProductRail from "@/components/product-rail"
+import NotifyMe from "@/components/notify-me"
 import { StarRating } from "@/components/star-rating"
 import { formatQuantity } from "@/lib/units"
 import {
@@ -289,9 +290,14 @@ export default function ProductDetail() {
           )}
 
           {outOfStock && (
-            <Button size="lg" disabled className="w-full">
-              Out of Stock
-            </Button>
+            <div className="space-y-3">
+              <Button size="lg" disabled className="w-full">
+                Out of Stock
+              </Button>
+              {/* The only useful thing left on this page. Wishlist saves it;
+                  this tells them when they can actually have it. */}
+              <NotifyMe item={item} />
+            </div>
           )}
 
           {/* Save for later. Worth offering most when the item is out of stock —

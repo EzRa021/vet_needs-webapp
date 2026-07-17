@@ -9,9 +9,18 @@ export async function GET(request, { params }) {
 
     const { data, error } = await supabase
       .from('items')
-      // Explicit FK — item_categories makes a bare embed ambiguous (PGRST201)
+      // Explicit columns (not '*'): 023 revoked cost_price from anon, so '*'
+      // would now error — and this guarantees margins never reach a product
+      // page. Explicit FK on the category embed avoids the item_categories
+      // ambiguity (PGRST201).
       .select(
-        '*, category:categories!items_category_id_fkey(id, name, path), images:item_images(url, alt_text, sort_order)'
+        `id, name, slug, sku, brand, description, long_description, price,
+         compare_at_price, unit_type, stock, low_stock_threshold, allow_backorder,
+         is_active, is_available, is_featured, image_url, rating_avg, rating_count,
+         weight_grams, attributes, tags, meta_title, meta_description, category_id,
+         created_at, updated_at, vat_enabled, vat_rate, vat_inclusive,
+         category:categories!items_category_id_fkey(id, name, path),
+         images:item_images(url, alt_text, sort_order)`
       )
       .eq('id', id)
       .eq('is_active', true)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { buildPayload, friendlyItemError } from '../route'
 
 // GET /api/admin/products/[id] - product + its audit trail
@@ -9,12 +10,15 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
   const { supabase } = auth
+  // Service role reads cost_price (revoked from the staff session by 023); the
+  // route is staff-gated above.
+  const admin = createAdminClient()
 
   try {
     const { id } = await params
 
     const [item, history] = await Promise.all([
-      supabase
+      admin
         .from('items')
         // Explicit FK — item_categories makes a bare embed ambiguous (PGRST201)
         .select('*, category:categories!items_category_id_fkey(id, name, path)')
@@ -49,7 +53,9 @@ export async function PATCH(request, { params }) {
   if (auth.error) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
-  const { supabase } = auth
+  // Service role: update may write cost_price, and .select() reads it back —
+  // both blocked for the staff session after 023.
+  const admin = createAdminClient()
 
   try {
     const { id } = await params
@@ -63,7 +69,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from('items')
       .update(payload)
       .eq('id', id)

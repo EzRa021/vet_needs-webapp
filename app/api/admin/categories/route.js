@@ -68,6 +68,11 @@ export async function POST(request) {
       image_url: body.image_url?.trim() || null,
       sort_order: Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0,
       is_active: body.is_active !== false,
+      // meta_* have existed since 000 and generateMetadata already reads them
+      // (see the SEO pass) — the payload just never carried them, so the
+      // columns could only ever be null.
+      meta_title: body.meta_title?.trim().slice(0, 70) || null,
+      meta_description: body.meta_description?.trim().slice(0, 160) || null,
     }
     // slug/path/depth are set by the DB trigger
 

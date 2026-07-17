@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import CategoryTree from "@/components/admin/category-tree"
-import { useAdminTaxonomy, useDeleteCategory } from "@/stores/adminStore"
+import { useAdminTaxonomy, useDeleteCategory, useSaveCategory } from "@/stores/adminStore"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AdminCategoriesPage() {
@@ -42,11 +42,49 @@ export default function AdminCategoriesPage() {
   const { toast } = useToast()
   const { data: tree, isLoading, isError } = useAdminTaxonomy()
   const del = useDeleteCategory()
+  const save = useSaveCategory()
 
   // Delete stays a dialog: it's one irreversible yes/no, not a form. Editing is
   // a page (a name, description, image, parent and visibility is a page's worth
   // of decisions, and it deserves a URL you can link to or open in a tab).
   const [pendingDelete, setPendingDelete] = useState(null)
+
+  // Reorder within a parent.
+  //
+  // NOT a swap of the two rows' sort_order values: they're all 0 by default
+  // (nothing has ever set them), so swapping 0 with 0 is a no-op and the arrows
+  // would look broken. Renumber the whole sibling list from its new order
+  // instead — self-healing, and it only writes the rows that actually changed.
+  const handleMove = async (node, siblings, index, direction) => {
+    const target = index + direction
+    if (target < 0 || target >= siblings.length) return
+
+    const reordered = [...siblings]
+    const [moved] = reordered.splice(index, 1)
+    reordered.splice(target, 0, moved)
+
+    try {
+      await Promise.all(
+        reordered
+          .map((n, i) => ({ n, i }))
+          .filter(({ n, i }) => n.sort_order !== i)
+          .map(({ n, i }) =>
+            save.mutateAsync({
+              id: n.id,
+              sort_order: i,
+              // Reordering must not rename or re-slug anything.
+              regenerate_slug: false,
+            })
+          )
+      )
+    } catch (err) {
+      toast({
+        title: "Couldn't reorder",
+        description: err.message,
+        variant: "destructive",
+      })
+    }
+  }
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
@@ -148,6 +186,7 @@ export default function AdminCategoriesPage() {
                 }
                 onEdit={(node) => router.push(`/admin/categories/${node.id}/edit`)}
                 onDelete={setPendingDelete}
+                onMove={handleMove}
               />
             )}
           </CardContent>

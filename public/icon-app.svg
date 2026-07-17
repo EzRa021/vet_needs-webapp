@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PetDo">
+  <!-- Full-bleed brand green so a maskable crop only rounds the corners. -->
+  <rect width="512" height="512" fill="#1F6B45"/>
+  <!-- Wheat mark (the shop is feed-first), cream on green. Kept inside the
+       maskable safe zone: everything sits within the central ~80%. -->
+  <g fill="#F5EFDB" stroke="#F5EFDB" stroke-width="14" stroke-linecap="round">
+    <!-- stalk -->
+    <line x1="256" y1="200" x2="256" y2="392"/>
+    <!-- base leaves -->
+    <path d="M256 392 C 226 372 206 352 200 322" fill="none"/>
+    <path d="M256 392 C 286 372 306 352 312 322" fill="none"/>
+  </g>
+  <g fill="#F5EFDB">
+    <!-- crown grain -->
+    <ellipse cx="256" cy="150" rx="17" ry="36"/>
+    <!-- three tiers of paired grains, angled outward -->
+    <ellipse cx="222" cy="196" rx="16" ry="34" transform="rotate(-32 222 196)"/>
+    <ellipse cx="290" cy="196" rx="16" ry="34" transform="rotate(32 290 196)"/>
+    <ellipse cx="216" cy="248" rx="16" ry="34" transform="rotate(-34 216 248)"/>
+    <ellipse cx="296" cy="248" rx="16" ry="34" transform="rotate(34 296 248)"/>
+    <ellipse cx="214" cy="300" rx="16" ry="34" transform="rotate(-36 214 300)"/>
+    <ellipse cx="298" cy="300" rx="16" ry="34" transform="rotate(36 298 300)"/>
+  </g>
+</svg>

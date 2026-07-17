@@ -19,6 +19,17 @@
       note was stale.)*
 - [x] **Run `006_order_idempotency.sql`** *(verified applied 2026-07-17:
       `orders.idempotency_key` is live, so checkout is not broken.)*
+- [ ] 🔒 **Run `023_hide_cost_columns.sql` — before entering any cost prices.**
+      `items` is "readable by all", so `cost_price` (your margin) is readable by anyone
+      with the public anon key: `GET /rest/v1/items?select=cost_price`. *(Verified
+      2026-07-17: anon can read it — null everywhere today, which is the only reason it
+      hasn't mattered. The inventory view exists to make staff fill it in, so shut this
+      first.)* 023 revokes the column (+ `pos_*`) from anon **and** authenticated (a
+      competitor can register a free account). **Ships with** the public `/api/shop/items`
+      routes on explicit selects and the admin item reads/writes on the service role —
+      run together, or `select('*')` breaks for the storefront. The code half is safe to
+      run ahead of the migration (verified: public explicit selects work today); the
+      migration just closes the hole.
 - [ ] 🚨 **Run `010_orders_server_authored.sql` — SECURITY. 009 WAS NOT ENOUGH.**
       **The ₦1 hole is still open until this runs.** 009 closed the UPDATE path
       (rewriting `total_amount` on a server-priced order). But 001's INSERT policy
@@ -64,6 +75,16 @@
       type's output function, which can be session-dependent). Fixed with a wrapper
       typed to `text[]`, where that reasoning doesn't apply, plus explicit
       `'english'::regconfig` casts (the 1-arg `to_tsvector(text)` is also only STABLE).*
+- [ ] **Run `022_stock_notifications.sql`** + **point a cron at
+      `POST /api/admin/stock-notifications/send`** (every 5–15 min; "back in stock"
+      decays in hours, not seconds). Without the cron, requests queue as `ready` and
+      nobody is ever told.
+- [ ] **Set `LEGAL.whatsapp`** (digits only, e.g. `2348012345678`) — the footer's
+      "Chat on WhatsApp" button stays hidden until you do.
+- [ ] **Run `021_stock_reason.sql`** — until it runs, Adjust Stock errors (no
+      `adjust_stock` function) and the edit form no longer sends stock, so **stock
+      can't be changed at all**. Replaces `log_item_changes()` with the same function
+      plus a reason; everything else about it is unchanged.
 - [ ] 🚨 **Run `020_coupon_scope.sql`** — ⚠️ **breaking: coupons stop working until it
       runs.** It replaces `validate_coupon(text, uuid, numeric)` with
       `(text, uuid, jsonb)` and both callers already send the new shape, so the old
@@ -434,7 +455,9 @@
       is left staring at row 4 of a grid that silently changed.
       Both pages needed a `Suspense` boundary (useSearchParams).
       *Not done: SEO still needs SSR/`generateMetadata` — see the P2 SEO pass.*
-- [ ] 🆕 **Print invoice / packing slip** from admin order detail (print CSS view).
+- [x] 🆕 **Print invoice / packing slip** — **done** (built with the order-actions work;
+      `/admin/orders/[id]/print`, invoice + packing slip, print CSS). *Checkbox was
+      stale.*
 - [x] 🆕 Customer order actions — **done** *(009 verified applied 2026-07-17:
       `cancel_my_order` live and refusing anonymous callers).*
       🚨 **Building cancel surfaced a live payment vulnerability — see the 009 blocker
@@ -858,18 +881,107 @@
       delete stays a dialog — it's one irreversible yes/no, not a form. Dropped dead
       code from the old parent-picker: `isSelfOrDescendant` and `excludePath()` were
       computed and never used.)*
-      *Still to do: drag-drop reordering; expose existing `meta_title`/
-      `meta_description`.*
-- [ ] 🔧 Product form: expose `attributes` (key/value editor) + `tags` input —
-      they power the product page + facets but only seed data has them.
-- [ ] 🔧 Stock adjustment reason (goes into existing `item_history.details`).
-- [ ] 🆕 `popup` promotion placement — admin can select it but nothing renders it.
-      Needs dismiss + frequency-capping (localStorage/cookie) so it isn't hostile.
+      ~~meta_title/meta_description~~ *(done — **the columns have existed since 000 and
+      `generateMetadata` already read them**; the API payload just never carried them, so
+      they could only ever be null. Now editable, with live char counts against the 70/160
+      that search engines actually render, and each field states what it falls back to.)*
+      ~~Reordering~~ *(done — **arrows, not drag-and-drop**. A collapsible nested tree needs
+      before/after/inside drop-zones, which is a dependency plus real a11y work, and it's the
+      one interaction that's hostile on a phone. Arrows are keyboard-native and work today.
+      **Renumbers the sibling list rather than swapping two values** — every `sort_order` is
+      0 by default, so a swap would be 0↔0 and the buttons would look broken. Only writes the
+      rows that actually moved, and passes `regenerate_slug: false` so reordering can't
+      re-slug a category and break its links.)*
+      *Not done: drag-drop proper — arrows cover the need; revisit if the tree grows.*
+- [x] 🔧 Product form: `attributes` + `tags` — **done. No migration.**
+      **They weren't in the API's column whitelist**, so a form alone wouldn't have
+      helped: every product created through the admin had `{}` and `[]` forever, and
+      could never be filtered (013) or found by tag (012, weight C). Only the seed data
+      ever had any — which is why the facets *looked* fine.
+      - Keys are constrained to `\w` because they become jsonb paths in the facet
+        filter (`attributes->>bag_size`) and labels on the page; values are stringified
+        so `"10"` and `10` don't become two facets.
+      - Empty values are dropped — an empty attribute is noise on the spec table and a
+        dead facet.
+      - The editor **suggests keys already in use**, because the whole feature rests on
+        staff spelling a key the same way twice: "bag_size" on two products is a filter,
+        "bag_size" + "bagsize" is two dead ones. The field says so.
+      - Tags: comma/Enter to add, backspace-to-remove, deduped and lowercased.
+- [x] 🔧 Stock adjustment reason — **done (⚠️ needs migration 021).**
+      "Layer Mash: 40 → 12" was a permanent mystery — sold offline? mouldy?
+      miscounted? stolen? Four different business problems, flattened into one row
+      saying `adjustment`.
+      - **It had to be an RPC.** The reason must be set in the *same transaction* as
+        the UPDATE for the history trigger to see it (the trigger already does this
+        for sales via `app.sale_order_id`), and two supabase-js calls are two
+        transactions. `adjust_stock()` sets the config, updates, and clears it —
+        transaction-local, so nothing leaks onto a pooled connection.
+      - **Takes a DELTA, not a new total, and locks the row.** Two staff counting the
+        same shelf: "set to 40" twice ends at 40; "+15" twice ends at +30 — and only
+        the second is what actually happened.
+      - Reasons are split by direction (you don't "restock" a bag you threw away) and
+        coded, not free text — 40 rows saying "adjustment" can't tell you what spoilage
+        cost you.
+      - **Closed the loophole**: the edit form's stock field is read-only AND omitted
+        from the payload entirely. Read-only alone wasn't enough — a form opened before
+        someone used Adjust Stock would submit its stale total, silently reverting their
+        adjustment and logging a reasonless change on top. Still editable on create;
+        an opening balance has no history to explain.
+      - Older rows have no reason and simply don't show that line, rather than claiming
+        "Unknown".
+- [x] 🆕 `popup` promotion placement — **done. No migration.**
+      The placement has been selectable since 000 with **nothing rendering it**: an
+      admin could create a popup, see it listed as live, and it would never appear.
+      A popup is the easiest thing in this codebase to make hostile, so the decisions
+      are all about restraint:
+      - **Dismissal lasts 14 days**, per promotion id. A popup you closed that returns
+        on the next click isn't marketing, it's harassment — and it's why people install
+        blockers.
+      - **Never on `/cart` or `/checkout`.** Interrupting someone who is already buying,
+        to advertise at them, loses the sale you'd already won.
+      - 6s delay (not on arrival), Escape closes, click-away closes, a real hit-area ✕,
+        and an actual **"No thanks"** button — "close" as the only exit makes people
+        hunt for the way out.
+      - A corrupt/blocked localStorage is treated as **dismissed**, not as "show
+        forever".
 
 ## P3 — Advanced / differentiating
 
-- [ ] 🆕 **Product variants** — Layer Mash 5/10/25kg as one product with variant rows.
-      Biggest remaining schema decision; do before the catalog grows large.
+- [x] 🆕 ~~**Product variants**~~ — **NOT BUILT. The premise was wrong** *(2026-07-17)*.
+      Checked the live catalogue before writing any schema: **all 18 products are
+      distinct base names — there is no "Layer Mash 5/10/25kg"**. The motivating
+      example didn't exist. Asked the owner, who clarified:
+      > "yes, they sell in kg, it can be 0.5, 8.7, 0.3 etc"
+      **That's continuous weight selling, not discrete size variants** — already
+      `unit_type='kg'` + a fractional quantity, which exists. A variant table would
+      have taught the cart, `order_items`, facets, search, best-sellers, stock and
+      wishlist about variant ids — an enormous blast radius — to model something the
+      shop doesn't sell.
+      **🐛 The clarification exposed a live bug I'd shipped.** `lib/units.js` snapped
+      kg onto a **0.5 grid**: `snapToStep(8.7) → 8.5`, `0.3 → 0.5`. On a per-kg product
+      that's the wrong weight **and the wrong price**, applied silently — a customer
+      types 8.7, gets billed for 8.5, and nothing errors. I invented that step
+      ("half-bags/scoops are how feed is actually bought") without checking, while the
+      GNX POS model and create-order's own 3dp rounding were both saying kg is
+      continuous.
+      Fixed: `snapToStep` → `normalizeQuantity`. kg rounds to **3dp** (exactly matching
+      the server) and floors at **100g**, never snaps. ± remains a 0.5 nudge — a
+      convenience, not a constraint. Pieces still round to whole numbers, which
+      create-order enforces.
+      *Verified against `lib/units.js` directly: 0.5 / 8.7 / 0.3 / 12.25 / 2.333 all
+      survive; 2.3337→2.334; junk and negatives floor to 0.1; pieces stay whole.*
+      *Revisit only if the shop starts stocking genuinely discrete packs (a sealed 5kg
+      AND a sealed 25kg as separate things to pick).*
+      **Found while analysing — worth fixing next:**
+      - Old Dogs/Cats seed data is still live beside the real Pet/Feed taxonomy,
+        creating customer-visible near-duplicates: *Adult Dog Kibble 10kg* (Pet Kibbles)
+        vs *Premium Dry Dog Food 10kg* (Dog Food); *Frozen Chicken Necks (per kg)* vs
+        *Raw Chicken Necks (per kg)*.
+      - **"Multivitamin Supplement 500ml" has no category** — it appears in no
+        department, no category page, no facet.
+      - Attribute keys split on one concept: `size=5kg` (Cat Food) vs `bag_size=10kg`
+        (Pet Kibbles) — two dead facets instead of one. `size` also carries "Medium",
+        "5kg" and "12 x 400g", which are three different kinds of thing.
 - [ ] 🔧 **GNX POS import/sync** — `pos_external_id`/`pos_source` columns already on
       categories (and planned for items). Import screen mapping POS departments/
       categories/items; later two-way stock sync. *The most business-specific
@@ -881,12 +993,59 @@
 - [ ] 🆕 `audit_log` table (actor, entity, action, diff) — item_history covers products
       only; orders/settings/role changes are unlogged.
 - [ ] 🆕 Analytics events table (page views → dashboard funnel, feeds best-sellers).
-- [ ] 🆕 Back-in-stock notify-me email capture on out-of-stock products.
+- [x] 🆕 Back-in-stock notify-me — **done (⚠️ needs migration 022 + a cron on
+      `POST /api/admin/stock-notifications/send`).**
+      **Channel-agnostic queue, email-only UI.** `notify_by` exists from day one so a
+      WhatsApp sender is a new reader of the same queue, not a migration — but the UI
+      only offers what can actually deliver. Offering "WhatsApp me" with no sender is
+      the same lie as the fake testimonials and the refunds that refunded nothing.
+      - **The queue is a trigger, not a poll.** Stock rises from `adjust_stock`, a
+        refund restock, an admin edit, a future POS sync — marking rows ready in the
+        one place that sees every stock write means no path can forget. Fires only on
+        the **transition** into buyable, or every bag moved would re-notify everyone.
+      - **Sending is out-of-band.** A mail provider having a bad afternoon must never
+        be able to fail a stock update.
+      - **Sold out again before the send?** The row goes back to `pending`, not `sent`
+        — "it's back!" landing on an Out of Stock button is worse than silence, and the
+        next restock should still catch them.
+      - No `RESEND_API_KEY`? Rows stay `ready`. Marking them sent would silently
+        delete the waiting list.
+      - Oldest first: on a small restock that's a queue rather than a lottery.
+      - Public write / staff read (like 005) — a read policy here is "list everyone
+        waiting on this product, with their emails".
+- [x] 🆕 WhatsApp click-to-chat — **done.** `wa.me` link in the footer, customer-
+      initiated: no API, no Meta verification, no template approval, **no risk to the
+      number**. Set `LEGAL.whatsapp` (digits only, e.g. `2348012345678`) and it appears.
+      **🐛 Caught in review:** the guard was supposed to hide the button while the
+      number is a placeholder — but the placeholder was `[2348012345678]`, which strips
+      to 13 valid-looking digits and **shipped a live button pointing at a number that
+      isn't the shop's**. Now empty by default, plus an explicit bracket check. The
+      lesson: a placeholder that contains digits defeats a digit-shaped validator.
+      *Decision recorded: **not** doing QR-pairing WhatsApp (whatsapp-web.js/Baileys).
+      It automates a normal account against Meta's terms — bans are permanent and take
+      the number, which is on the footer, /terms, /privacy and every invoice. It also
+      needs a persistent process + headless Chrome, which cannot live in Next's
+      request/response model. If outbound WhatsApp is wanted: Cloud API, utility
+      templates for order updates, marketing opt-in for back-in-stock.*
 - [ ] 🆕 Product Q&A, product compare (on `attributes`), WhatsApp share button.
 - [ ] 🆕 PWA (manifest, installability) for repeat farm buyers.
-- [ ] 🆕 Admin: media library page; inventory-focused view (valuation = stock ×
-      cost_price, restock CSV); reviews-reply; customer notes/ban; resend-confirmation
-      button.
+- [~] 🆕 Admin grab-bag — **inventory view + restock CSV done (⚠️ needs migration 023).**
+      `/admin/inventory` (Catalog → Inventory, admin-only): stock value at cost, retail
+      value, potential margin, out/low counts, and a **reorder CSV** (out + low stock,
+      worst first — the sheet you take to the supplier).
+      **🔒 Building this surfaced a live info leak and fixed it first.** "valuation =
+      stock × cost_price" meant staff would start entering `cost_price` — which the
+      public API (`select('*')`) and PostgREST (`items` is readable-by-all) were handing
+      to any anonymous visitor. A competitor could read every margin with the anon key.
+      Fixed in `023` (column revoke from anon + authenticated) + explicit public selects
+      + admin reads via service role. *Verified: leak real (anon reads cost_price today,
+      null-only so nothing lost yet); public selects unaffected; inventory totals correct
+      (18 products, ₦12.2M retail, 18/18 missing cost → understated-value banner fires).*
+      **The honest-caveat pattern again:** when cost prices are missing the page says
+      "stock value is understated (N products count as ₦0)" rather than presenting a
+      margin it can't stand behind — same discipline as the VAT report.
+      *Still to do from this line: media library, reviews-reply, customer notes/ban,
+      resend-confirmation button.*
 
 ## Platform hygiene (ongoing, weave into the above)
 

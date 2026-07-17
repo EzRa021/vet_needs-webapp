@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import BrandImage from "@/components/brand-image"
 import ProductHistory from "@/components/admin/product-history"
+import StockAdjust from "@/components/admin/stock-adjust"
 import { useAdminProduct, useDeleteProduct, useSaveProduct } from "@/stores/adminStore"
 import { useToast } from "@/hooks/use-toast"
 import { formatNaira } from "@/lib/pricing"
@@ -183,6 +184,8 @@ export default function ProductDetailsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Stock is an event, not a field you retype — see 021. */}
+          <StockAdjust product={product} />
           <Button asChild>
             <Link href={`/admin/products/${product.id}/edit`}>
               <Pencil data-icon="inline-start" />

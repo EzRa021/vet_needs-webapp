@@ -1,5 +1,7 @@
 import {
   AtSign,
+  BellRing,
+  Boxes,
   ChartLine,
   LayoutDashboard,
   Mail,
@@ -32,6 +34,7 @@ export const ADMIN_NAV = [
     items: [
       { title: "Categories", href: "/admin/categories", icon: FolderTree, role: "staff", ready: true },
       { title: "Products", href: "/admin/products", icon: Package, role: "staff", ready: true },
+      { title: "Inventory", href: "/admin/inventory", icon: Boxes, role: "admin", ready: true },
     ],
   },
   {
@@ -51,6 +54,7 @@ export const ADMIN_NAV = [
       // sat unread in the database for as long as this entry didn't exist.
       { title: "Messages", href: "/admin/messages", icon: Mail, role: "staff", ready: true, badge: "messages" },
       { title: "Subscribers", href: "/admin/subscribers", icon: AtSign, role: "admin", ready: true },
+      { title: "Waitlist", href: "/admin/waitlist", icon: BellRing, role: "staff", ready: true },
       { title: "Delivery", href: "/admin/shipping", icon: Truck, role: "admin", ready: true },
       { title: "Promotions", href: "/admin/promotions", icon: Megaphone, role: "staff", ready: true },
       { title: "Settings", href: "/admin/settings", icon: Settings, role: "admin", ready: true },

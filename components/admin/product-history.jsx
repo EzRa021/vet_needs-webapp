@@ -33,6 +33,20 @@ const TYPE_META = {
   vat_update: { label: "VAT changed", icon: Receipt, variant: "secondary" },
 }
 
+// Reason codes written by adjust_stock() (021). Rendering the raw slug would
+// make the whole feature look half-built the first time someone spoils a bag.
+const REASON_LABEL = {
+  restock: "Delivery from supplier",
+  return: "Customer return",
+  count_correction: "Stock count correction",
+  damaged: "Damaged",
+  expired: "Expired / spoiled",
+  offline_sale: "Sold offline",
+  sample: "Sample or giveaway",
+  theft: "Loss / theft",
+  other: "Other",
+}
+
 function describe(entry) {
   const d = entry.details || {}
   switch (entry.type) {
@@ -130,6 +144,21 @@ export default function ProductHistory({ history }) {
                 </time>
               </div>
               <p className="mt-1 text-sm tabular-nums">{describe(entry)}</p>
+
+              {/* The reason is the whole point of 021 — "40 → 12" without it is
+                  a permanent mystery. Older rows have none; they just don't show
+                  this line rather than claiming "Unknown". */}
+              {entry.details?.reason && (
+                <p className="mt-0.5 text-sm">
+                  <span className="font-medium">
+                    {REASON_LABEL[entry.details.reason] || entry.details.reason}
+                  </span>
+                  {entry.details.note && (
+                    <span className="text-muted-foreground"> — {entry.details.note}</span>
+                  )}
+                </p>
+              )}
+
               <p className="text-xs text-muted-foreground">
                 by {entry.created_by === "system" ? "system" : `user ${String(entry.created_by).slice(0, 8)}`}
               </p>

@@ -14,7 +14,9 @@ import {
   Twitter,
   Loader2,
   TriangleAlert,
+  MessageCircle,
 } from "lucide-react"
+import { whatsappLink } from "@/lib/legal"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +44,7 @@ const EMPTY_FORM = {
 }
 
 export default function ContactPage() {
+  const whatsapp = whatsappLink("Hi PetDo — I have a question")
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [sending, setSending] = useState(false)
@@ -249,6 +252,20 @@ export default function ContactPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Fastest way to reach a Nigerian shop — customer-initiated, so
+                  no API and no risk. Only shows once a real number is set. */}
+              {whatsapp && (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 px-4 py-3 font-medium text-success transition-colors hover:bg-success/20"
+                >
+                  <MessageCircle className="h-5 w-5 shrink-0" />
+                  Chat with us on WhatsApp
+                </a>
+              )}
             </CardContent>
           </Card>
 

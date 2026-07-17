@@ -129,6 +129,33 @@ const invalidateProducts = (qc) => {
   qc.invalidateQueries({ queryKey: ['items'] })
 }
 
+// Stock movement with a reason (021). Not a plain items.update: the reason has
+// to be set in the same transaction as the write for the history trigger to see
+// it, which only an RPC can do.
+export const useAdjustStock = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ itemId, delta, reason, note }) => {
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc('adjust_stock', {
+        p_item_id: itemId,
+        p_delta: delta,
+        p_reason: reason,
+        p_note: note || null,
+      })
+      if (error) throw new Error(error.message)
+      return data
+    },
+    onSuccess: (_d, vars) => {
+      invalidateProducts(qc)
+      qc.invalidateQueries({ queryKey: ['admin', 'product', vars.itemId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'item-history', vars.itemId] })
+      // Stock drives the storefront's in-stock facet and the cart's clamp.
+      qc.invalidateQueries({ queryKey: ['facets'] })
+    },
+  })
+}
+
 export const useBulkProducts = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -485,6 +512,58 @@ export const useSubscribers = (activeOnly = true) =>
       return { data: data || [], total: count || 0 }
     },
     placeholderData: (prev) => prev,
+  })
+
+// Back-in-stock queue (022). Read through the client with the staff RLS policy.
+export const useStockNotifications = (status = 'ready') =>
+  useQuery({
+    queryKey: ['admin', 'stock-notifications', status],
+    queryFn: async () => {
+      const supabase = createClient()
+      let q = supabase
+        .from('stock_notifications')
+        .select(
+          'id, email, phone, notify_by, status, created_at, ready_at, notified_at, item:items (id, name, stock)',
+          { count: 'exact' }
+        )
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (status !== 'all') q = q.eq('status', status)
+
+      const { data, error, count } = await q
+      if (error) throw error
+      return { data: data || [], total: count || 0 }
+    },
+    staleTime: 15 * 1000,
+  })
+
+// Drains the ready queue via the send endpoint (which does the actual mailing
+// server-side with the service role).
+export const useSendStockNotifications = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/admin/stock-notifications/send', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Send failed')
+      return json.data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'stock-notifications'] }),
+  })
+}
+
+// Inventory valuation (023 + inventory route). cost_price is service-role only,
+// so this always comes from the API, never a direct client read.
+export const useInventory = () =>
+  useQuery({
+    queryKey: ['admin', 'inventory'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/inventory')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to load inventory')
+      return json.data
+    },
+    staleTime: 30 * 1000,
   })
 
 // Reports (017).

@@ -10,6 +10,8 @@ import {
   EyeOff,
   FolderTree,
   Folder,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -29,10 +31,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-function TreeNode({ node, depth, onAddChild, onEdit, onDelete }) {
+function TreeNode({ node, depth, siblings, index, onAddChild, onEdit, onDelete, onMove }) {
   const [open, setOpen] = useState(depth === 0)
   const hasChildren = node.children?.length > 0
   const isDepartment = depth === 0
+
+  // Reordering is arrows, not drag-and-drop. A tree with collapsible nodes and
+  // nesting needs drop-zones for "before/after/inside", which is a real library
+  // and a real chunk of a11y work — and it's the one interaction that's hostile
+  // on a phone. Arrows are unglamorous, keyboard-native, and work today.
+  const canUp = index > 0
+  const canDown = index < siblings.length - 1
 
   return (
     <div>
@@ -98,6 +107,28 @@ function TreeNode({ node, depth, onAddChild, onEdit, onDelete }) {
 
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            <div className="flex">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                disabled={!canUp}
+                onClick={() => onMove(node, siblings, index, -1)}
+                aria-label={`Move ${node.name} up`}
+              >
+                <ArrowUp className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                disabled={!canDown}
+                onClick={() => onMove(node, siblings, index, 1)}
+                aria-label={`Move ${node.name} down`}
+              >
+                <ArrowDown className="size-3.5" />
+              </Button>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -139,14 +170,17 @@ function TreeNode({ node, depth, onAddChild, onEdit, onDelete }) {
 
         {hasChildren && (
           <CollapsibleContent>
-            {node.children.map((child) => (
+            {node.children.map((child, i) => (
               <TreeNode
                 key={child.id}
                 node={child}
                 depth={depth + 1}
+                siblings={node.children}
+                index={i}
                 onAddChild={onAddChild}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onMove={onMove}
               />
             ))}
           </CollapsibleContent>
@@ -156,17 +190,22 @@ function TreeNode({ node, depth, onAddChild, onEdit, onDelete }) {
   )
 }
 
-export default function CategoryTree({ tree, onAddChild, onEdit, onDelete }) {
+export default function CategoryTree({ tree, onAddChild, onEdit, onDelete, onMove }) {
   return (
     <div className="flex flex-col">
-      {tree.map((node) => (
+      {tree.map((node, i) => (
         <TreeNode
           key={node.id}
           node={node}
           depth={0}
+          // Reordering only makes sense among SIBLINGS — moving a node past its
+          // parent isn't a reorder, it's a re-parent, which the edit page does.
+          siblings={tree}
+          index={i}
           onAddChild={onAddChild}
           onEdit={onEdit}
           onDelete={onDelete}
+          onMove={onMove}
         />
       ))}
     </div>

@@ -24,11 +24,20 @@ export async function GET(request) {
 
     // The FK is named explicitly: item_categories (multi-placement junction)
     // creates a second items↔categories path, making a bare embed ambiguous.
+    // Explicit columns, NOT '*'. Two reasons: after 023 a `select('*')` as anon
+    // fails on the revoked cost_price, and listing columns means cost_price /
+    // pos_* can never be re-leaked by a future column being added to the table.
     let query = supabase
       .from('items')
-      .select('*, category:categories!items_category_id_fkey(id, name, path)', {
-        count: 'exact',
-      })
+      .select(
+        `id, name, slug, sku, brand, description, long_description, price,
+         compare_at_price, unit_type, stock, low_stock_threshold, allow_backorder,
+         is_active, is_available, is_featured, image_url, rating_avg, rating_count,
+         weight_grams, attributes, tags, meta_title, meta_description, category_id,
+         created_at, updated_at, vat_enabled, vat_rate, vat_inclusive,
+         category:categories!items_category_id_fkey(id, name, path)`,
+        { count: 'exact' }
+      )
       .eq('is_active', true) // hide products the admin has switched off
 
     if (searchParams.get('featured') === 'true') {

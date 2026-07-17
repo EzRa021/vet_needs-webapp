@@ -55,6 +55,8 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
     name: "",
     description: "",
     image_url: "",
+    meta_title: "",
+    meta_description: "",
     parent_id: ROOT_VALUE,
     sort_order: 0,
     is_active: true,
@@ -66,6 +68,8 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
       name: node?.name || "",
       description: node?.description || "",
       image_url: node?.image_url || "",
+      meta_title: node?.meta_title || "",
+      meta_description: node?.meta_description || "",
       parent_id: node ? node.parent_id || ROOT_VALUE : defaultParentId || ROOT_VALUE,
       sort_order: node?.sort_order ?? 0,
       is_active: node?.is_active ?? true,
@@ -88,6 +92,8 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
         name: form.name.trim(),
         description: form.description.trim(),
         image_url: form.image_url.trim(),
+        meta_title: form.meta_title.trim(),
+        meta_description: form.meta_description.trim(),
         parent_id: form.parent_id === ROOT_VALUE ? null : form.parent_id,
         sort_order: Number(form.sort_order) || 0,
         is_active: form.is_active,
@@ -176,6 +182,53 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
                     placeholder="Shown under the heading on the category page. Optional."
                     rows={3}
                   />
+                </Field>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Search &amp; sharing</CardTitle>
+              <CardDescription>
+                What Google and WhatsApp show. Both optional — leave blank and the
+                name and description above are used.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="cat-meta-title">Page title</FieldLabel>
+                  <Input
+                    id="cat-meta-title"
+                    value={form.meta_title}
+                    maxLength={70}
+                    onChange={(e) => setForm((f) => ({ ...f, meta_title: e.target.value }))}
+                    placeholder={form.name || "e.g. Poultry Feeds in Nigeria"}
+                  />
+                  {/* Counts, because the limits aren't arbitrary — past them the
+                      text is simply cut off in results. */}
+                  <FieldDescription>
+                    {form.meta_title.length}/70 · falls back to “{form.name || "the name"}”
+                  </FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="cat-meta-desc">Search description</FieldLabel>
+                  <Textarea
+                    id="cat-meta-desc"
+                    rows={2}
+                    maxLength={160}
+                    value={form.meta_description}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, meta_description: e.target.value }))
+                    }
+                    placeholder="One sentence that would make someone click."
+                  />
+                  <FieldDescription>
+                    {form.meta_description.length}/160 · falls back to the description
+                    above
+                  </FieldDescription>
                 </Field>
               </FieldGroup>
             </CardContent>

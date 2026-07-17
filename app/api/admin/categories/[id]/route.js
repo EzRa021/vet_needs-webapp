@@ -20,6 +20,14 @@ export async function PATCH(request, { params }) {
     if (typeof body.image_url === 'string') patch.image_url = body.image_url.trim() || null
     if (typeof body.is_active === 'boolean') patch.is_active = body.is_active
     if (Number.isFinite(Number(body.sort_order))) patch.sort_order = Number(body.sort_order)
+    // Truncated to what search engines actually render — a 300-char meta
+    // description is just a truncated one with extra bytes.
+    if (typeof body.meta_title === 'string') {
+      patch.meta_title = body.meta_title.trim().slice(0, 70) || null
+    }
+    if (typeof body.meta_description === 'string') {
+      patch.meta_description = body.meta_description.trim().slice(0, 160) || null
+    }
     // parent_id: null means "promote to department"
     if ('parent_id' in body) {
       if (body.parent_id === id) {

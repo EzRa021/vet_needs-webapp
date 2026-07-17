@@ -31,6 +31,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import BrandImage from "@/components/brand-image"
 import ImageUpload from "@/components/admin/image-upload"
 import ProductGallery from "@/components/admin/product-gallery"
+import { AttributesEditor, TagsInput } from "@/components/admin/attributes-editor"
 import { useSaveProduct, useAdminTaxonomy, useAdminSettings } from "@/stores/adminStore"
 import { useToast } from "@/hooks/use-toast"
 import { formatNaira } from "@/lib/pricing"
@@ -44,6 +45,8 @@ const EMPTY = {
   description: "",
   long_description: "",
   image_url: "",
+  attributes: {},
+  tags: [],
   category_id: NO_CATEGORY,
   price: "",
   compare_at_price: "",
@@ -103,6 +106,8 @@ export default function ProductForm({ product }) {
       image_url: product.image_url || "",
       compare_at_price: product.compare_at_price ?? "",
       cost_price: product.cost_price ?? "",
+      attributes: product.attributes || {},
+      tags: product.tags || [],
     })
   }, [product])
 
@@ -140,9 +145,17 @@ export default function ProductForm({ product }) {
     }
 
     try {
+      const { stock, ...rest } = form
+
       const saved = await save.mutateAsync({
         id: product?.id,
-        ...form,
+        ...rest,
+        // Stock is only sent on CREATE (the opening balance). On edit it's
+        // omitted entirely — not just read-only in the UI. Otherwise a form
+        // opened before someone used Adjust Stock would submit its stale total
+        // and silently revert their adjustment, logging a reasonless change on
+        // top. Stock moves through adjust_stock() (021) or not at all.
+        ...(isEdit ? {} : { stock }),
         category_id: form.category_id === NO_CATEGORY ? null : form.category_id,
       })
       toast({
@@ -254,6 +267,40 @@ export default function ProductForm({ product }) {
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Specifications</CardTitle>
+              <CardDescription>
+                Shown as a spec table on the product page — and each one becomes a
+                shop filter once two products share it.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel>Attributes</FieldLabel>
+                  <AttributesEditor
+                    value={form.attributes}
+                    onChange={set("attributes")}
+                  />
+                  <FieldDescription>
+                    Use the same key across products — “bag_size” on two products is
+                    a filter; “bag_size” and “bagsize” are two dead ones.
+                  </FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel>Tags</FieldLabel>
+                  <TagsInput value={form.tags} onChange={set("tags")} />
+                  <FieldDescription>
+                    Extra words that should find this product in search — brand
+                    nicknames, local names, common misspellings.
+                  </FieldDescription>
+                </Field>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Pricing</CardTitle>
               <CardDescription>All amounts in Naira (₦).</CardDescription>
             </CardHeader>
@@ -343,7 +390,9 @@ export default function ProductForm({ product }) {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field>
-                    <FieldLabel htmlFor="p-stock">Stock {isKg ? "(kg)" : "(units)"}</FieldLabel>
+                    <FieldLabel htmlFor="p-stock">
+                      {isEdit ? "Stock" : "Opening stock"} {isKg ? "(kg)" : "(units)"}
+                    </FieldLabel>
                     <Input
                       id="p-stock"
                       type="number"
@@ -351,7 +400,20 @@ export default function ProductForm({ product }) {
                       min="0"
                       value={form.stock}
                       onChange={setInput("stock")}
+                      // Read-only when editing: retyping a total is how "40 → 12"
+                      // ends up in the history with no reason, and how two people
+                      // counting the same shelf overwrite each other. Adjust Stock
+                      // records a delta and a reason (021). Still editable on
+                      // create — an opening balance has no history to explain.
+                      readOnly={isEdit}
+                      className={isEdit ? "bg-muted text-muted-foreground" : undefined}
                     />
+                    {isEdit && (
+                      <FieldDescription>
+                        Use <strong>Adjust stock</strong> on the product page — it
+                        records what changed and why.
+                      </FieldDescription>
+                    )}
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="p-low">Low stock alert at</FieldLabel>
