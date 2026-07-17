@@ -1,0 +1,213 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Brand design system — agri + pet care storefront
+   Primary: Deep Forest Green  Secondary: Warm Earth
+   Accent:  Veterinary Blue (sparingly)
+   Trustworthy, warm, professional.
+   ============================================================ */
+
+@layer base {
+  :root {
+    --background: 90 20% 98%;        /* #FAFBF8 */
+    --surface-2: 96 22% 96%;         /* #F5F7F2 secondary background */
+    --foreground: 217 33% 17%;       /* #1E293B */
+
+    --card: 0 0% 100%;
+    --card-foreground: 217 33% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 33% 17%;
+
+    --primary: 150 55% 27%;          /* #1F6B45 deep forest green */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 20% 95%;        /* soft green surface */
+    --secondary-foreground: 150 32% 20%;
+
+    --muted: 150 16% 95%;
+    --muted-foreground: 215 16% 47%; /* #64748B */
+
+    --accent: 150 24% 93%;           /* subtle green hover bg (NOT the blue) */
+    --accent-foreground: 150 40% 20%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 122 39% 49%;          /* #4CAF50 */
+    --success-foreground: 0 0% 100%;
+
+    --earth: 39 51% 53%;             /* #C49A4A warm earth */
+    --earth-foreground: 30 45% 14%;
+
+    --info: 214 84% 56%;             /* #2F80ED veterinary blue */
+    --info-foreground: 0 0% 100%;
+
+    --border: 150 14% 90%;
+    --input: 150 14% 88%;
+    --ring: 150 55% 27%;
+
+    --radius: 1rem;                  /* 16px cards */
+  }
+
+  .dark {
+    --background: 160 24% 8%;
+    --surface-2: 160 20% 11%;
+    --foreground: 150 14% 92%;
+
+    --card: 160 22% 11%;
+    --card-foreground: 150 14% 92%;
+
+    --popover: 160 22% 11%;
+    --popover-foreground: 150 14% 92%;
+
+    --primary: 145 48% 46%;          /* lighter forest green for dark */
+    --primary-foreground: 160 30% 8%;
+
+    --secondary: 160 15% 16%;
+    --secondary-foreground: 150 14% 90%;
+
+    --muted: 160 15% 16%;
+    --muted-foreground: 150 10% 62%;
+
+    --accent: 160 15% 18%;
+    --accent-foreground: 150 14% 90%;
+
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 122 39% 55%;
+    --success-foreground: 160 30% 8%;
+
+    --earth: 39 50% 60%;
+    --earth-foreground: 30 45% 12%;
+
+    --info: 214 84% 64%;
+    --info-foreground: 160 30% 8%;
+
+    --border: 160 12% 20%;
+    --input: 160 12% 22%;
+    --ring: 145 48% 46%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-bold tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Warm elevated hover for product & category cards */
+  .card-lift {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10;
+  }
+  /* Styled placeholder background for not-yet-generated imagery */
+  .img-placeholder {
+    background-color: #f5f7f2;
+  }
+  .dark .img-placeholder {
+    background-color: hsl(160 20% 13%);
+  }
+  /* Section rhythm helper */
+  .section {
+    @apply py-14 md:py-20;
+  }
+
+  /* Feed-sack stencil eyebrow — uppercase stamped label */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply inline-block h-1.5 w-1.5 rounded-full bg-earth;
+  }
+
+  /* Grain-scatter dot texture for warm panels */
+  .grain {
+    background-image: radial-gradient(hsl(var(--earth) / 0.18) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+  }
+
+  /* Rubber-stamp quality seal */
+  .stamp {
+    @apply flex flex-col items-center justify-center rounded-full text-center uppercase;
+    border: 2px dashed hsl(var(--earth));
+    color: hsl(var(--earth-foreground));
+    background: hsl(var(--background));
+    transform: rotate(-9deg);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Print — used by the order receipt (/account/orders/[id]).
+   Per-element decisions use Tailwind's `print:` variant; this handles
+   the things a page can't opt out of on its own: the site chrome, and
+   the dark theme (a receipt printed from dark mode would otherwise
+   dump a sheet of ink).
+   --------------------------------------------------------------- */
+@media print {
+  @page {
+    margin: 1.5cm;
+  }
+
+  /* Site chrome is navigation — meaningless on paper. Covers the storefront
+     header/footer, the account tabs, and the admin sidebar + its rail (the
+     admin topbar is a <header>, so it's already caught). */
+  header,
+  footer,
+  nav[aria-label="Account"],
+  [data-sidebar="sidebar"],
+  [data-sidebar="rail"],
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+
+  /* The sidebar reserves width via the peer/inset layout; with it hidden the
+     sheet must reclaim the full page. */
+  main,
+  [data-sidebar="inset"] {
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Force a light receipt regardless of the viewer's theme. The tokens are
+     HSL triplets, so they're overridden here rather than per-element. */
+  :root,
+  :root[data-theme="dark"],
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 35%;
+    --border: 0 0% 80%;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  /* Shadows print as grey mud. */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* Keep a receipt from being split across two sheets mid-total. */
+  .print-block {
+    break-inside: avoid;
+  }
+}
