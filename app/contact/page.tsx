@@ -29,7 +29,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 const CONTACT_INFO = [
   { icon: MapPin, title: "Address", lines: ["Lagos, Nigeria", "Nationwide delivery"] },
   { icon: Phone, title: "Phone", lines: ["+234 800 000 0000", "Mon–Sat, 8am–6pm"] },
-  { icon: Mail, title: "Email", lines: ["support@petdo.ng", "orders@petdo.ng"] },
+  { icon: Mail, title: "Email", lines: ["support@vetneeds.ng", "orders@vetneeds.ng"] },
   { icon: Clock, title: "Business Hours", lines: ["Mon–Fri: 8am – 6pm", "Sat: 9am – 4pm", "Sun: Closed"] },
 ]
 
@@ -44,7 +44,7 @@ const EMPTY_FORM = {
 }
 
 export default function ContactPage() {
-  const whatsapp = whatsappLink("Hi PetDo — I have a question")
+  const whatsapp = whatsappLink("Hi VetNeeds — I have a question")
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [sending, setSending] = useState(false)

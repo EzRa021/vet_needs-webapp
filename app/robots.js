@@ -1,4 +1,4 @@
-const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || 'https://petdo.ng'
+const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || 'https://vetneeds.ng'
 
 export default function robots() {
   return {

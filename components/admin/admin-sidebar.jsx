@@ -67,7 +67,7 @@ export default function AdminSidebar() {
                   <Wheat />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-display font-bold">PetDo</span>
+                  <span className="font-display font-bold">VetNeeds</span>
                   <span className="text-xs text-muted-foreground">Admin</span>
                 </div>
               </Link>

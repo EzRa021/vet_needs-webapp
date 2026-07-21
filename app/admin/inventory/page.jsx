@@ -74,7 +74,7 @@ export default function AdminInventoryPage() {
 
   const exportReorder = () =>
     downloadCsv(
-      `petdo-reorder-${new Date().toISOString().slice(0, 10)}.csv`,
+      `vetneeds-reorder-${new Date().toISOString().slice(0, 10)}.csv`,
       reorder,
       [
         { key: "sku", label: "SKU" },

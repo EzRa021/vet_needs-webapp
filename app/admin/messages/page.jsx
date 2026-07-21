@@ -80,7 +80,7 @@ function MessageCard({ m }) {
   // inbox, so the thread lives where staff already work and the customer can
   // just hit reply.
   const mailto = `mailto:${m.email}?subject=${encodeURIComponent(
-    `Re: your message to PetDo (${SUBJECT_LABEL[m.subject] || m.subject})`
+    `Re: your message to VetNeeds (${SUBJECT_LABEL[m.subject] || m.subject})`
   )}`
 
   return (

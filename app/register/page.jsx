@@ -138,7 +138,7 @@ export default function RegisterPage() {
     />
     <AuthShell
       title="Create your account"
-      subtitle="Join PetDo — quality feed & pet care, delivered"
+      subtitle="Join VetNeeds — quality feed & pet care, delivered"
       footer={
         <>
           Already have an account?{" "}

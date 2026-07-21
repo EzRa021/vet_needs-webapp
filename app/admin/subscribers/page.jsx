@@ -53,7 +53,7 @@ export default function AdminSubscribersPage() {
             disabled={subscribers.length === 0}
             onClick={() =>
               downloadCsv(
-                `petdo-subscribers-${new Date().toISOString().slice(0, 10)}.csv`,
+                `vetneeds-subscribers-${new Date().toISOString().slice(0, 10)}.csv`,
                 subscribers,
                 [
                   { key: "email", label: "Email" },

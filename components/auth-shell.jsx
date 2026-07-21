@@ -27,7 +27,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/15">
               <Wheat className="h-5 w-5" />
             </div>
-            <span className="font-display text-xl font-bold">PetDo</span>
+            <span className="font-display text-xl font-bold">VetNeeds</span>
           </Link>
 
           <div className="space-y-6">
@@ -64,7 +64,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Wheat className="h-5 w-5" />
             </div>
-            <span className="font-display text-xl font-bold">PetDo</span>
+            <span className="font-display text-xl font-bold">VetNeeds</span>
           </Link>
 
           <div className="mb-6 text-center lg:text-left">

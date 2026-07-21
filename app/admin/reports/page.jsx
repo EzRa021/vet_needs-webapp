@@ -206,7 +206,7 @@ export default function AdminReportsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    downloadCsv(`petdo-sales-${from}-to-${to}.csv`, data.by_day, [
+                    downloadCsv(`vetneeds-sales-${from}-to-${to}.csv`, data.by_day, [
                       { key: "day", label: "Date" },
                       { key: "revenue", label: "Revenue (NGN)" },
                       { key: "orders", label: "Orders" },
@@ -269,7 +269,7 @@ export default function AdminReportsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      downloadCsv(`petdo-top-products-${from}-to-${to}.csv`, data.top_products, [
+                      downloadCsv(`vetneeds-top-products-${from}-to-${to}.csv`, data.top_products, [
                         { key: "name", label: "Product" },
                         { key: "units", label: "Units" },
                         { key: "revenue", label: "Revenue (NGN)" },
@@ -328,7 +328,7 @@ export default function AdminReportsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      downloadCsv(`petdo-top-categories-${from}-to-${to}.csv`, data.top_categories, [
+                      downloadCsv(`vetneeds-top-categories-${from}-to-${to}.csv`, data.top_categories, [
                         { key: "name", label: "Category" },
                         { key: "units", label: "Units" },
                         { key: "revenue", label: "Revenue (NGN)" },

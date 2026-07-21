@@ -1,5 +1,5 @@
 -- ============================================================
--- PetDo — payments, stock safety, and RLS hardening
+-- VetNeeds — payments, stock safety, and RLS hardening
 -- Run this in Supabase Dashboard → SQL Editor (one time).
 -- ============================================================
 

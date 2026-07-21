@@ -1,4 +1,4 @@
-// PetDo service worker.
+// VetNeeds service worker.
 //
 // DELIBERATELY MINIMAL. Its only jobs are (1) make the app installable — a PWA
 // needs a service worker with a fetch handler — and (2) show a branded page
@@ -11,7 +11,7 @@
 // navigations and simply passes everything else straight through; the only
 // thing it ever serves from cache is the static offline page.
 
-const CACHE = 'petdo-shell-v1'
+const CACHE = 'vetneeds-shell-v1'
 const OFFLINE_URL = '/offline.html'
 
 self.addEventListener('install', (event) => {

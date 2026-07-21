@@ -12,7 +12,7 @@ import { usePromotion } from "@/stores/shopStore"
 // isn't marketing, it's harassment — and it's the reason people install
 // blockers. Two weeks is long enough that a "no" means something.
 const SNOOZE_DAYS = 14
-const KEY = "petdo-popup-dismissed"
+const KEY = "vetneeds-popup-dismissed"
 
 // Long enough that it doesn't land on top of someone still reading the hero,
 // short enough to catch them before they navigate away.

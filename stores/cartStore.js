@@ -178,7 +178,7 @@ export const useCartStore = create(
         calcTotals(get().items.filter((i) => !i.unavailable), opts),
     }),
     {
-      name: 'petdo-cart-storage', // localStorage key
+      name: 'vetneeds-cart-storage', // localStorage key
     }
   )
 )
