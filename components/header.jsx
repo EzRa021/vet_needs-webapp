@@ -149,7 +149,13 @@ export default function Header() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-full">
                       <Avatar className="h-9 w-9">
-                        <AvatarImage src={user.user_metadata?.avatar_url || "/placeholder.svg"} />
+                        {/* Only render an image when there actually is one — a
+                            placeholder src loads fine and would paint a blank
+                            grey disc over the initials, which only show when
+                            the image fails. */}
+                        {user.user_metadata?.avatar_url ? (
+                          <AvatarImage src={user.user_metadata.avatar_url} alt="" />
+                        ) : null}
                         <AvatarFallback className="bg-primary font-semibold text-primary-foreground">
                           {getUserInitials()}
                         </AvatarFallback>
@@ -251,8 +257,15 @@ export default function Header() {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-80">
-                  <div className="mt-8 flex flex-col gap-6">
+                {/* overflow-y-auto: the sheet primitive is `fixed h-full` with
+                    no overflow rule, so a long department list was clipped at
+                    the viewport edge with no way to reach it. overscroll-contain
+                    stops the scroll chaining to the page underneath. */}
+                <SheetContent
+                  side="left"
+                  className="flex w-80 max-w-[85vw] flex-col overflow-y-auto overscroll-contain"
+                >
+                  <div className="mt-8 flex flex-col gap-6 pb-8">
                     {/* No Search button here — the drawer is narrow, and picking
                         a suggestion is the point on mobile. onNavigate closes
                         the drawer, which a plain router.push wouldn't. */}
@@ -328,6 +341,13 @@ export default function Header() {
                           ))}
                       </div>
                     )}
+
+                    {/* The header's toggle is hidden below sm, so on phones the
+                        drawer is the only way to reach it. */}
+                    <div className="flex items-center justify-between border-t pt-4">
+                      <span className="text-sm font-medium">Theme</span>
+                      <ThemeToggle />
+                    </div>
 
                     {user && (
                       <button
