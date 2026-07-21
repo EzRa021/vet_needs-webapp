@@ -7,6 +7,7 @@ import CheckoutSteps from "@/components/checkout-steps"
 
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { RevealOnLoad } from "@/components/motion/reveal"
 import { Card, CardContent } from "@/components/ui/card"
 import { useCartStore, maxQuantityFor } from "@/stores/cartStore"
 import { useCartSync } from "@/stores/cartSync"
@@ -76,7 +77,7 @@ export default function CartPage() {
         <CheckoutSteps current={0} />
         <CartChangesNotice changes={changes} onDismiss={dismiss} />
         <div className="grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
+          <RevealOnLoad className="md:col-span-2">
             <div className="rounded-lg border bg-card">
               <div className="p-6">
                 <div className="hidden md:grid grid-cols-12 gap-4 pb-4 text-sm font-medium text-muted-foreground">
@@ -184,9 +185,9 @@ export default function CartPage() {
                 </Button>
               </div>
             </div>
-          </div>
+          </RevealOnLoad>
 
-          <div>
+          <RevealOnLoad delay={0.1}>
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
@@ -295,7 +296,7 @@ export default function CartPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </RevealOnLoad>
         </div>
         </>
       )}

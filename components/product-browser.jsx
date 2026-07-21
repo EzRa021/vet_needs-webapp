@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import ProductCard from "@/components/product-card"
 import ShopFacets, { useFacets } from "@/components/shop-facets"
+import { RevealGroup, RevealItem } from "@/components/motion/reveal"
 import { formatNaira } from "@/lib/pricing"
 import {
   SHOP_DEFAULTS,
@@ -501,11 +502,21 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+          {/* Keyed on the current page so paginating replays the stagger —
+              otherwise page 2 swaps in with no acknowledgement that anything
+              changed. Stagger is tight (40ms) because a full grid of 12+ would
+              otherwise take most of a second to finish arriving. */}
+          <RevealGroup
+            key={pagination.page}
+            className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4"
+            stagger={0.04}
+          >
             {items.map((item) => (
-              <ProductCard key={item.id} item={item} />
+              <RevealItem key={item.id}>
+                <ProductCard item={item} />
+              </RevealItem>
             ))}
-          </div>
+          </RevealGroup>
 
           {pagination.pages > 1 && (
             <nav

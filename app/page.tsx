@@ -25,6 +25,12 @@ import BrandImage from "@/components/brand-image";
 import PromoBanner from "@/components/promo-banner";
 import ProductRail from "@/components/product-rail";
 import { StarRating } from "@/components/star-rating";
+import {
+  Reveal,
+  RevealOnLoad,
+  RevealGroup,
+  RevealItem,
+} from "@/components/motion/reveal";
 import { usePromotion, useBestSellers } from "@/stores/shopStore";
 import { useTopReviews } from "@/stores/reviewStore";
 import { useRecentlyViewed } from "@/stores/recentlyViewedStore";
@@ -127,39 +133,46 @@ export default function HomePage() {
         <div className="container grid items-center gap-8 px-4 py-14 md:px-6 md:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:py-24">
           {/* Copy */}
           <div className="space-y-7">
-            <p className="eyebrow">Poultry feed · Pet food · Farm supply</p>
-            {hero ? (
-              <>
-                <h1 className="font-display text-[2.75rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl lg:text-[4rem]">
-                  {hero.title}
-                </h1>
-                {hero.subtitle && (
+            {/* Hero copy plays on mount, not on scroll — it is already in view,
+                and a scroll trigger would leave it blank until the user moved.
+                Delays cascade top-to-bottom so the eye follows the headline. */}
+            <RevealOnLoad as="p" className="eyebrow">
+              Poultry feed · Pet food · Farm supply
+            </RevealOnLoad>
+            <RevealOnLoad className="space-y-7" delay={0.08}>
+              {hero ? (
+                <>
+                  <h1 className="font-display text-[2.75rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl lg:text-[4rem]">
+                    {hero.title}
+                  </h1>
+                  {hero.subtitle && (
+                    <p className="max-w-[520px] text-lg text-muted-foreground">
+                      {hero.subtitle}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h1 className="font-display text-[2.75rem] font-extrabold leading-[0.98] tracking-tight sm:text-6xl lg:text-[4.25rem]">
+                    Feed that grows
+                    <br />
+                    <span className="text-primary">healthy flocks</span>
+                    <br />
+                    &amp; happy pets.
+                  </h1>
                   <p className="max-w-[520px] text-lg text-muted-foreground">
-                    {hero.subtitle}
+                    From layer mash by the 25kg bag to premium dog, cat and fish
+                    food — quality nutrition your animals thrive on, delivered
+                    across Nigeria at fair Naira prices.
                   </p>
-                )}
-              </>
-            ) : (
-              <>
-                <h1 className="font-display text-[2.75rem] font-extrabold leading-[0.98] tracking-tight sm:text-6xl lg:text-[4.25rem]">
-                  Feed that grows
-                  <br />
-                  <span className="text-primary">healthy flocks</span>
-                  <br />
-                  &amp; happy pets.
-                </h1>
-                <p className="max-w-[520px] text-lg text-muted-foreground">
-                  From layer mash by the 25kg bag to premium dog, cat and fish
-                  food — quality nutrition your animals thrive on, delivered
-                  across Nigeria at fair Naira prices.
-                </p>
-              </>
-            )}
+                </>
+              )}
+            </RevealOnLoad>
 
             {/* Departments — driven by the real category tree, so anything the
                 shop adds in the admin shows up here automatically. */}
             {(taxonomyLoading || departments.length > 0) && (
-              <div>
+              <RevealOnLoad delay={0.16}>
                 <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
                   What are you shopping for?
                 </p>
@@ -182,10 +195,13 @@ export default function HomePage() {
                         );
                       })}
                 </div>
-              </div>
+              </RevealOnLoad>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <RevealOnLoad
+              className="flex flex-col gap-3 sm:flex-row"
+              delay={0.24}
+            >
               <Button
                 size="lg"
                 className="h-12 px-8 text-base shadow-lg shadow-primary/20"
@@ -204,13 +220,18 @@ export default function HomePage() {
               >
                 <Link href="/shop">Browse All Products</Link>
               </Button>
-            </div>
+            </RevealOnLoad>
           </div>
 
           {/* Image — cut-out PNG floating on the hero, no frame.
               object-contain shows the whole image; drop-shadow follows the
               cut-out's real edges instead of a rectangle. */}
-          <div className="relative mx-auto w-full max-w-[720px]">
+          <RevealOnLoad
+            className="relative mx-auto w-full max-w-[720px]"
+            direction="left"
+            delay={0.12}
+            duration={0.6}
+          >
             {/* Soft organic glow behind the subject, so a transparent PNG
                 still has depth without a visible panel. */}
             <div
@@ -248,15 +269,15 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-          </div>
+          </RevealOnLoad>
         </div>
       </section>
 
       {/* ===== Trust strip ===== */}
       <section className="border-b bg-card">
-        <div className="container grid grid-cols-2 gap-6 px-4 py-8 md:grid-cols-4 md:px-6">
+        <RevealGroup className="container grid grid-cols-2 gap-6 px-4 py-8 md:grid-cols-4 md:px-6">
           {TRUST_POINTS.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="flex items-center gap-3">
+            <RevealItem key={title} className="flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
               </div>
@@ -264,15 +285,15 @@ export default function HomePage() {
                 <p className="text-sm font-semibold leading-tight">{title}</p>
                 <p className="text-xs text-muted-foreground">{text}</p>
               </div>
-            </div>
+            </RevealItem>
           ))}
-        </div>
+        </RevealGroup>
       </section>
 
       {/* ===== Categories ===== */}
       <section className="section">
         <div className="container px-4 md:px-6">
-          <div className="mb-8 flex items-end justify-between">
+          <Reveal className="mb-8 flex items-end justify-between">
             <div>
               <p className="eyebrow mb-2">Browse the store</p>
               <h2 className="text-3xl font-bold md:text-4xl">
@@ -289,7 +310,7 @@ export default function HomePage() {
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
-          </div>
+          </Reveal>
 
           {taxonomyLoading ? (
             <div className="grid gap-5 sm:grid-cols-2">
@@ -306,11 +327,11 @@ export default function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2">
+            <RevealGroup className="grid gap-5 sm:grid-cols-2" stagger={0.1}>
               {departments.map((dept) => {
                 const Icon = iconFor(dept.slug);
                 return (
-                  <div
+                  <RevealItem
                     key={dept.id}
                     className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-card"
                   >
@@ -362,10 +383,10 @@ export default function HomePage() {
                           "Browse everything in this department."}
                       </p>
                     )}
-                  </div>
+                  </RevealItem>
                 );
               })}
-            </div>
+            </RevealGroup>
           )}
         </div>
       </section>
@@ -381,7 +402,7 @@ export default function HomePage() {
           own rail below, computed from paid orders (015). */}
       <section className="section bg-surface-2">
         <div className="container px-4 md:px-6">
-          <div className="mb-8 flex items-end justify-between">
+          <Reveal className="mb-8 flex items-end justify-between">
             <div>
               <p className="eyebrow mb-2">Handpicked</p>
               <h2 className="text-3xl font-bold md:text-4xl">
@@ -398,7 +419,7 @@ export default function HomePage() {
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
-          </div>
+          </Reveal>
 
           {featuredLoading ? (
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
@@ -411,11 +432,13 @@ export default function HomePage() {
               ))}
             </div>
           ) : featured && featured.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+            <RevealGroup className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
               {featured.map((item) => (
-                <ProductCard key={item.id} item={item} />
+                <RevealItem key={item.id}>
+                  <ProductCard item={item} />
+                </RevealItem>
               ))}
-            </div>
+            </RevealGroup>
           ) : (
             <div className="rounded-2xl border border-dashed py-16 text-center">
               <Leaf className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
@@ -434,7 +457,7 @@ export default function HomePage() {
       {/* ===== Promo band ===== */}
       <section className="section">
         <div className="container px-4 md:px-6">
-          <div className="relative grid items-center gap-8 overflow-hidden rounded-3xl border bg-primary p-8 text-primary-foreground md:grid-cols-2 md:p-12">
+          <Reveal className="relative grid items-center gap-8 overflow-hidden rounded-3xl border bg-primary p-8 text-primary-foreground md:grid-cols-2 md:p-12">
             <div className="relative z-10 space-y-4">
               <Badge className="border-transparent bg-earth text-earth-foreground">
                 Bulk & farm orders
@@ -469,7 +492,7 @@ export default function HomePage() {
                 icon={Leaf}
               />
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -501,7 +524,7 @@ export default function HomePage() {
       {/* ===== New arrivals ===== */}
       <section className="section pt-0">
         <div className="container px-4 md:px-6">
-          <div className="mb-8 flex items-end justify-between">
+          <Reveal className="mb-8 flex items-end justify-between">
             <div>
               <p className="eyebrow mb-2">Just in</p>
               <h2 className="text-3xl font-bold md:text-4xl">New arrivals</h2>
@@ -516,7 +539,7 @@ export default function HomePage() {
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
-          </div>
+          </Reveal>
 
           {arrivalsLoading ? (
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
@@ -525,11 +548,13 @@ export default function HomePage() {
               ))}
             </div>
           ) : newArrivals && newArrivals.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+            <RevealGroup className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
               {newArrivals.map((item) => (
-                <ProductCard key={item.id} item={item} />
+                <RevealItem key={item.id}>
+                  <ProductCard item={item} />
+                </RevealItem>
               ))}
-            </div>
+            </RevealGroup>
           ) : null}
         </div>
       </section>
@@ -543,7 +568,7 @@ export default function HomePage() {
       {topReviews && topReviews.length > 0 && (
         <section className="section bg-surface-2">
           <div className="container px-4 md:px-6">
-            <div className="mb-10 text-center">
+            <Reveal className="mb-10 text-center">
               <p className="eyebrow mb-2 justify-center">Reviews</p>
               <h2 className="text-3xl font-bold md:text-4xl">
                 Trusted by farmers &amp; pet owners
@@ -551,13 +576,14 @@ export default function HomePage() {
               <p className="mt-2 text-muted-foreground">
                 What customers say about what they bought
               </p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-3">
+            </Reveal>
+            <RevealGroup className="grid gap-6 md:grid-cols-3" stagger={0.08}>
               {topReviews.map((review) => {
                 const name = review.author_name || "VetNeeds customer";
                 return (
-                  <figure
+                  <RevealItem
                     key={review.id}
+                    as="figure"
                     className="flex flex-col rounded-2xl border bg-card p-6 shadow-card"
                   >
                     <StarRating value={review.rating} className="mb-3" />
@@ -583,10 +609,10 @@ export default function HomePage() {
                         )}
                       </div>
                     </figcaption>
-                  </figure>
+                  </RevealItem>
                 );
               })}
-            </div>
+            </RevealGroup>
           </div>
         </section>
       )}
@@ -594,7 +620,7 @@ export default function HomePage() {
       {/* ===== CTA band ===== */}
       <section className="section">
         <div className="container px-4 md:px-6">
-          <div className="relative overflow-hidden rounded-3xl border bg-card px-6 py-12 text-center md:px-12 md:py-16">
+          <Reveal className="relative overflow-hidden rounded-3xl border bg-card px-6 py-12 text-center md:px-12 md:py-16">
             <h2 className="text-2xl font-bold md:text-4xl">
               Give your animals the care they deserve
             </h2>
@@ -612,7 +638,7 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          </div>
+          </Reveal>
         </div>
       </section>
     </main>

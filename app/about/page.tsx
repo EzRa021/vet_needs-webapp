@@ -3,6 +3,12 @@ import { Leaf, Award, Users, Truck, ShieldCheck, Sprout } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import BrandImage from "@/components/brand-image"
+import {
+  Reveal,
+  RevealOnLoad,
+  RevealGroup,
+  RevealItem,
+} from "@/components/motion/reveal"
 
 // Served from /public/images — Next only serves static files from public/.
 const IMG = "/images"
@@ -33,7 +39,7 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="border-b bg-surface-2">
         <div className="container grid items-center gap-10 px-4 py-14 md:px-6 md:py-20 lg:grid-cols-2">
-          <div className="space-y-5">
+          <RevealOnLoad className="space-y-5">
             <nav className="flex items-center text-sm text-muted-foreground">
               <Link href="/" className="hover:text-primary">Home</Link>
               <span className="mx-2">/</span>
@@ -50,8 +56,12 @@ export default function AboutPage() {
             <Button size="lg" asChild>
               <Link href="/shop">Explore Products</Link>
             </Button>
-          </div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border shadow-xl">
+          </RevealOnLoad>
+          <RevealOnLoad
+            className="relative aspect-[4/3] overflow-hidden rounded-3xl border shadow-xl"
+            direction="left"
+            delay={0.12}
+          >
             <BrandImage
               src={`${IMG}/farmer-with-chickens.jpg`}
               alt="Farmer caring for healthy chickens"
@@ -61,26 +71,29 @@ export default function AboutPage() {
               sizes="(max-width: 1024px) 100vw, 50vw"
               placeholderLabel="Farm image"
             />
-          </div>
+          </RevealOnLoad>
         </div>
       </section>
 
       {/* Stats */}
       <section className="border-b bg-card">
-        <div className="container grid grid-cols-2 gap-6 px-4 py-10 md:grid-cols-4 md:px-6">
+        <RevealGroup className="container grid grid-cols-2 gap-6 px-4 py-10 md:grid-cols-4 md:px-6">
           {STATS.map((s) => (
-            <div key={s.label} className="text-center">
+            <RevealItem key={s.label} className="text-center">
               <p className="font-display text-3xl font-extrabold text-primary md:text-4xl">{s.value}</p>
               <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
-            </div>
+            </RevealItem>
           ))}
-        </div>
+        </RevealGroup>
       </section>
 
       {/* Story */}
       <section className="section">
         <div className="container grid items-center gap-10 px-4 md:px-6 lg:grid-cols-2">
-          <div className="relative order-2 aspect-[4/3] overflow-hidden rounded-3xl border shadow-card lg:order-1">
+          <Reveal
+            className="relative order-2 aspect-[4/3] overflow-hidden rounded-3xl border shadow-card lg:order-1"
+            direction="right"
+          >
             <BrandImage
               src={`${IMG}/trust-vet-with-dog.jpg`}
               alt="Vet caring for a dog"
@@ -89,8 +102,8 @@ export default function AboutPage() {
               sizes="(max-width: 1024px) 100vw, 50vw"
               placeholderLabel="Pet care image"
             />
-          </div>
-          <div className="order-1 space-y-4 lg:order-2">
+          </Reveal>
+          <Reveal className="order-1 space-y-4 lg:order-2" direction="left" delay={0.1}>
             <h2 className="text-3xl font-bold">Our Story</h2>
             <p className="text-muted-foreground">
               VetNeeds began with a simple belief: healthy animals start with the
@@ -107,38 +120,38 @@ export default function AboutPage() {
               Every product we stock is chosen for quality, safety and value,
               because the animals in your care deserve nothing less.
             </p>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Values */}
       <section className="section bg-surface-2">
         <div className="container px-4 md:px-6">
-          <div className="mb-10 text-center">
+          <Reveal className="mb-10 text-center">
             <h2 className="text-3xl font-bold">What We Stand For</h2>
             <p className="mx-auto mt-2 max-w-2xl text-muted-foreground">
               Our values guide everything — from the suppliers we choose to how we
               treat every customer.
             </p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          </Reveal>
+          <RevealGroup className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {VALUES.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="rounded-2xl border bg-card p-6 text-center shadow-card card-lift">
+              <RevealItem key={title} className="rounded-2xl border bg-card p-6 text-center shadow-card card-lift">
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold">{title}</h3>
                 <p className="text-sm text-muted-foreground">{text}</p>
-              </div>
+              </RevealItem>
             ))}
-          </div>
+          </RevealGroup>
         </div>
       </section>
 
       {/* CTA */}
       <section className="section">
         <div className="container px-4 md:px-6">
-          <div className="relative overflow-hidden rounded-3xl bg-primary p-8 text-center text-primary-foreground md:p-12">
+          <Reveal className="relative overflow-hidden rounded-3xl bg-primary p-8 text-center text-primary-foreground md:p-12">
             <ShieldCheck className="mx-auto mb-4 h-10 w-10 text-primary-foreground/80" />
             <h2 className="text-2xl font-bold text-primary-foreground md:text-3xl">Join the VetNeeds family</h2>
             <p className="mx-auto mt-3 max-w-2xl text-primary-foreground/85">
@@ -148,7 +161,7 @@ export default function AboutPage() {
             <Button size="lg" variant="secondary" className="mt-6 font-semibold" asChild>
               <Link href="/shop">Shop Now</Link>
             </Button>
-          </div>
+          </Reveal>
         </div>
       </section>
     </div>

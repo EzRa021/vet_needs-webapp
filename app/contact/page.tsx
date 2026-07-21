@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
+import { Reveal, RevealOnLoad } from "@/components/motion/reveal"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const CONTACT_INFO = [
@@ -83,7 +84,7 @@ export default function ContactPage() {
     <div className="flex-1">
       {/* Header band */}
       <section className="border-b bg-surface-2">
-        <div className="container px-4 py-12 md:px-6 md:py-16">
+        <RevealOnLoad className="container px-4 py-12 md:px-6 md:py-16">
           <nav className="mb-3 flex items-center text-sm text-muted-foreground">
             <Link href="/" className="hover:text-primary">Home</Link>
             <span className="mx-2">/</span>
@@ -94,12 +95,12 @@ export default function ContactPage() {
             Questions about feed, an order, or bulk supply for your farm? Our team
             is happy to help — reach out any time.
           </p>
-        </div>
+        </RevealOnLoad>
       </section>
 
       <div className="container grid gap-8 px-4 py-12 md:px-6 md:py-16 lg:grid-cols-3">
         {/* Form */}
-        <div className="lg:col-span-2">
+        <Reveal className="lg:col-span-2">
           <Card className="shadow-card">
             <CardContent className="p-6 md:p-8">
               <h2 className="mb-6 text-2xl font-bold">Send us a message</h2>
@@ -232,10 +233,10 @@ export default function ContactPage() {
               )}
             </CardContent>
           </Card>
-        </div>
+        </Reveal>
 
         {/* Info */}
-        <div className="space-y-6">
+        <Reveal className="space-y-6" delay={0.1}>
           <Card className="shadow-card">
             <CardContent className="space-y-6 p-6">
               <h2 className="text-xl font-bold">Contact information</h2>
@@ -286,7 +287,7 @@ export default function ContactPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </Reveal>
       </div>
     </div>
   )

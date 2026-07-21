@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import ProductCard from "@/components/product-card"
+import { RevealGroup, RevealItem } from "@/components/motion/reveal"
 import { cn } from "@/lib/utils"
 
 // A horizontal strip of products (best sellers, recently viewed, related).
@@ -58,11 +59,13 @@ export default function ProductRail({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+      <RevealGroup className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
         {items.slice(0, 4).map((item) => (
-          <ProductCard key={item.id} item={item} />
+          <RevealItem key={item.id}>
+            <ProductCard item={item} />
+          </RevealItem>
         ))}
-      </div>
+      </RevealGroup>
     </section>
   )
 }

@@ -20,6 +20,7 @@ import QuantityInput from "@/components/quantity-input"
 import ProductRail from "@/components/product-rail"
 import NotifyMe from "@/components/notify-me"
 import { StarRating } from "@/components/star-rating"
+import { RevealOnLoad } from "@/components/motion/reveal"
 import { formatQuantity } from "@/lib/units"
 import {
   useRecentlyViewed,
@@ -149,7 +150,7 @@ export default function ProductDetail() {
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Images */}
-        <div className="space-y-3">
+        <RevealOnLoad className="space-y-3">
           <div className="relative aspect-square overflow-hidden rounded-lg border bg-muted">
             {activeImage || item.image_url ? (
               <Image
@@ -204,10 +205,10 @@ export default function ProductDetail() {
                 ))}
             </div>
           )}
-        </div>
+        </RevealOnLoad>
 
         {/* Details */}
-        <div className="flex flex-col gap-4">
+        <RevealOnLoad className="flex flex-col gap-4" delay={0.1}>
           <div className="flex flex-wrap items-center gap-2">
             {item.category?.name && (
               <Badge variant="outline">{item.category.name}</Badge>
@@ -333,7 +334,7 @@ export default function ProductDetail() {
               <span>{outOfStock ? "Currently out of stock" : `${item.stock ?? "In"} in stock`}</span>
             </div>
           </div>
-        </div>
+        </RevealOnLoad>
       </div>
 
       {/* Reviews — above "you may also like": a shopper deciding on THIS
