@@ -30,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import ThemeToggle from "@/components/theme-toggle"
 import SearchAutocomplete from "@/components/search-autocomplete"
 import { useUser, useLogout } from "@/stores/authStore"
@@ -265,6 +265,10 @@ export default function Header() {
                   side="left"
                   className="flex w-80 max-w-[85vw] flex-col overflow-y-auto overscroll-contain"
                 >
+                  {/* Radix requires a title on every dialog/sheet so screen
+                      readers can announce the panel. The drawer is visually
+                      self-evident, so it is sr-only rather than on screen. */}
+                  <SheetTitle className="sr-only">Menu</SheetTitle>
                   <div className="mt-8 flex flex-col gap-6 pb-8">
                     {/* No Search button here — the drawer is narrow, and picking
                         a suggestion is the point on mobile. onNavigate closes
