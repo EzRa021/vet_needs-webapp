@@ -1,4 +1,4 @@
-# PetDo — Full Fix Plan (historical)
+# VetNeeds — Full Fix Plan (historical)
 
 > ✅ All critical/high items below are done. The **living to-do list** for
 > everything still ahead is [`ROADMAP.md`](./ROADMAP.md) — work from that file.

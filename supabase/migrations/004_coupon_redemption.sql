@@ -1,5 +1,5 @@
 -- ============================================================
--- PetDo — coupon redemption (checkout wiring)
+-- VetNeeds — coupon redemption (checkout wiring)
 --
 -- Customers can't read the coupons table (admin-only RLS), so validation
 -- runs through a SECURITY DEFINER function. The discount is ALWAYS computed

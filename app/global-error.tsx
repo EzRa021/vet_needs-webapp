@@ -41,7 +41,7 @@ export default function GlobalError({
       >
         <main style={{ maxWidth: "32rem" }}>
           <h1 style={{ fontSize: "1.75rem", margin: "0 0 0.75rem", fontWeight: 800 }}>
-            PetDo is temporarily unavailable
+            VetNeeds is temporarily unavailable
           </h1>
           <p style={{ margin: "0 0 1.5rem", color: "#64748B", lineHeight: 1.6 }}>
             Something went wrong while loading the site. Please try again in a

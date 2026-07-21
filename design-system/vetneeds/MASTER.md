@@ -1,13 +1,13 @@
-# PetDo — Design System (MASTER)
+# VetNeeds — Design System (MASTER)
 
 > **LOGIC:** When building a specific page, first check
-> `design-system/petdo/pages/[page-name].md`. If that file exists, its rules
+> `design-system/vetneeds/pages/[page-name].md`. If that file exists, its rules
 > **override** this Master file. If not, strictly follow the rules below.
 
 **Source of truth.** These are the rules the app is *actually* built on —
 verified against the code, not generated defaults.
 
-**Project:** PetDo — e-commerce storefront + admin dashboard selling **poultry
+**Project:** VetNeeds — e-commerce storefront + admin dashboard selling **poultry
 feed, pet food, and farm/pet accessories** in Nigeria.
 **Audience:** poultry/fish farmers (bulk feed) and urban pet owners.
 **Vibe:** trustworthy, warm, professional — a specialist agri-and-pet-care

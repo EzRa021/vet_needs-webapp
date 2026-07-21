@@ -1,5 +1,5 @@
 -- ============================================================
--- PetDo — base schema (standard e-commerce)
+-- VetNeeds — base schema (standard e-commerce)
 -- Run this FIRST on a fresh Supabase project, then run
 -- 001_stock_and_orders.sql (payments, stock function, RLS for
 -- the core tables).
@@ -387,7 +387,7 @@ create trigger settings_set_updated_at
   for each row execute function public.set_updated_at();
 
 insert into public.settings (key, value, description, is_public) values
-  ('store_name', '"PetDo"', 'Shop display name', true),
+  ('store_name', '"VetNeeds"', 'Shop display name', true),
   ('currency', '"NGN"', 'Store currency', true),
   ('shipping_flat_fee', '1500', 'Flat shipping fee in NGN', true),
   ('vat_rate', '0.075', 'VAT rate (7.5%)', true),
@@ -508,10 +508,10 @@ from (values
    'Sinking pellets for bottom feeders', 16000.00, null, 45, 'piece', false, 'Fish Feed',
    '{"bag_size": "15kg", "type": "Sinking", "animal": "Fish"}', '{feed,fish,sinking}'),
   -- Pet Kibbles
-  ('Adult Dog Kibble 10kg', 'PET-KIB-001', 'PetDo Select',
+  ('Adult Dog Kibble 10kg', 'PET-KIB-001', 'VetNeeds Select',
    'Balanced dry food for adult dogs', 24500.00, 27000.00, 50, 'piece', true, 'Pet Kibbles',
    '{"bag_size": "10kg", "flavour": "Chicken", "life_stage": "Adult", "animal": "Dog"}', '{pet,dog,kibble}'),
-  ('Cat Kibble 4kg', 'PET-KIB-002', 'PetDo Select',
+  ('Cat Kibble 4kg', 'PET-KIB-002', 'VetNeeds Select',
    'Complete dry food for adult cats', 15500.00, null, 40, 'piece', false, 'Pet Kibbles',
    '{"bag_size": "4kg", "flavour": "Fish", "life_stage": "Adult", "animal": "Cat"}', '{pet,cat,kibble}'),
   -- Pet Accessories

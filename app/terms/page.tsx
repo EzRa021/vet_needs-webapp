@@ -6,7 +6,7 @@ import { LEGAL } from "@/lib/legal"
 export const metadata = {
   title: "Terms of Service",
   description:
-    "The terms you agree to when you shop with PetDo — orders, pricing, payment, delivery and returns.",
+    "The terms you agree to when you shop with VetNeeds — orders, pricing, payment, delivery and returns.",
 }
 
 export default function TermsPage() {

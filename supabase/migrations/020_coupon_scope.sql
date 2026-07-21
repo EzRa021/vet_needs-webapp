@@ -238,7 +238,7 @@ begin
     -- 8 chars from a 32-char alphabet ≈ 10^12 combinations. Ambiguous glyphs
     -- (0/O, 1/I) are excluded: these get read off paper and typed by hand.
     loop
-      v_code := upper(coalesce(nullif(trim(p_prefix), ''), 'PETDO')) || '-' ||
+      v_code := upper(coalesce(nullif(trim(p_prefix), ''), 'VETNEEDS')) || '-' ||
         string_agg(
           substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
                  floor(random() * 32 + 1)::int, 1), ''

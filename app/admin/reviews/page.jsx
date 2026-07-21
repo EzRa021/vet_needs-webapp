@@ -110,7 +110,7 @@ function ReviewRow({ review }) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            {review.author_name || "PetDo customer"} · {formatDate(review.created_at)}
+            {review.author_name || "VetNeeds customer"} · {formatDate(review.created_at)}
           </p>
 
           {review.comment && (

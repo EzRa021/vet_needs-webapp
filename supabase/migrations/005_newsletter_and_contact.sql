@@ -1,5 +1,5 @@
 -- ============================================================
--- PetDo — newsletter subscribers + contact messages
+-- VetNeeds — newsletter subscribers + contact messages
 --
 -- Both forms previously showed a success message and threw the data away.
 -- These tables are WRITE-ONLY to the public: anyone may insert (that's the

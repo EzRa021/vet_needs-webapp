@@ -1,5 +1,5 @@
 -- ============================================================
--- PetDo — flexible category TREE (departments → categories → …)
+-- VetNeeds — flexible category TREE (departments → categories → …)
 -- Unlimited depth, self-referencing, POS-mappable.
 --
 -- A "department" is simply a category with no parent (depth 0).

@@ -3,8 +3,8 @@
 // repeat farm buyers reorder feed, and an icon on the phone beats retyping a URL.
 export default function manifest() {
   return {
-    name: 'PetDo — Poultry Feed, Pet Food & Farm Supplies',
-    short_name: 'PetDo',
+    name: 'VetNeeds — Poultry Feed, Pet Food & Farm Supplies',
+    short_name: 'VetNeeds',
     description:
       'Quality poultry feed, pet food and farm & pet accessories, delivered across Nigeria.',
     start_url: '/',

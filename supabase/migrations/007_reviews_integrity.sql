@@ -46,7 +46,7 @@ create or replace function public.reviews_guard()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
   -- Attribution: snapshot the display name. Falls back to null, which the
-  -- UI renders as "PetDo customer" rather than an empty byline.
+  -- UI renders as "VetNeeds customer" rather than an empty byline.
   new.author_name := nullif(trim(coalesce(
     (select full_name from public.profiles where id = new.user_id), '')), '');
 

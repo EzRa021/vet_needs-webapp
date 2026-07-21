@@ -29,7 +29,7 @@ export async function POST(request) {
     const { data: body, response } = await parseBody(request, CouponSchema)
     if (response) return response
 
-    // Coupon codes are guessable by design ("SAVE10", "PETDO20"), which makes
+    // Coupon codes are guessable by design ("SAVE10", "VETNEEDS20"), which makes
     // this the one endpoint someone would actually brute-force. Rate limited
     // per IP + code so walking the keyspace is slow.
     if (!(await allow(request, 'coupon'))) {

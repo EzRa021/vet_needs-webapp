@@ -221,7 +221,7 @@ export default function HomePage() {
             <div className="relative aspect-[3/2] w-full">
               <BrandImage
                 src={heroImage}
-                alt={hero?.title || "Cats, dogs, chickens, rabbits and farm animals cared for with PetDo feed and pet food"}
+                alt={hero?.title || "Cats, dogs, chickens, rabbits and farm animals cared for with VetNeeds feed and pet food"}
                 fill
                 priority
                 className="object-contain drop-shadow-2xl"
@@ -554,7 +554,7 @@ export default function HomePage() {
             </div>
             <div className="grid gap-6 md:grid-cols-3">
               {topReviews.map((review) => {
-                const name = review.author_name || "PetDo customer";
+                const name = review.author_name || "VetNeeds customer";
                 return (
                   <figure
                     key={review.id}
@@ -599,7 +599,7 @@ export default function HomePage() {
               Give your animals the care they deserve
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground md:text-lg">
-              Join farmers and pet owners across Nigeria who trust PetDo for
+              Join farmers and pet owners across Nigeria who trust VetNeeds for
               quality feed, food and accessories at fair prices.
             </p>
             <Button

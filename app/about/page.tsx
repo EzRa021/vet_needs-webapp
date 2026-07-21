@@ -10,7 +10,7 @@ const IMG = "/images"
 export const metadata = {
   title: "About Us",
   description:
-    "PetDo supplies quality poultry feed, pet food and farm & pet accessories to farmers and pet owners across Nigeria.",
+    "VetNeeds supplies quality poultry feed, pet food and farm & pet accessories to farmers and pet owners across Nigeria.",
 }
 
 const VALUES = [
@@ -43,7 +43,7 @@ export default function AboutPage() {
               Helping Nigeria's animals <span className="text-primary">grow strong</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              PetDo is a specialist agri-and-pet-care store. We supply premium
+              VetNeeds is a specialist agri-and-pet-care store. We supply premium
               poultry feed, pet food and farm &amp; pet accessories — connecting
               trusted producers with the farmers and pet owners who rely on them.
             </p>
@@ -93,7 +93,7 @@ export default function AboutPage() {
           <div className="order-1 space-y-4 lg:order-2">
             <h2 className="text-3xl font-bold">Our Story</h2>
             <p className="text-muted-foreground">
-              PetDo began with a simple belief: healthy animals start with the
+              VetNeeds began with a simple belief: healthy animals start with the
               right nutrition. From poultry farmers raising layers and broilers to
               families caring for dogs, cats and fish, everyone deserves reliable
               access to quality feed and care products.
@@ -140,7 +140,7 @@ export default function AboutPage() {
         <div className="container px-4 md:px-6">
           <div className="relative overflow-hidden rounded-3xl bg-primary p-8 text-center text-primary-foreground md:p-12">
             <ShieldCheck className="mx-auto mb-4 h-10 w-10 text-primary-foreground/80" />
-            <h2 className="text-2xl font-bold text-primary-foreground md:text-3xl">Join the PetDo family</h2>
+            <h2 className="text-2xl font-bold text-primary-foreground md:text-3xl">Join the VetNeeds family</h2>
             <p className="mx-auto mt-3 max-w-2xl text-primary-foreground/85">
               Quality feed, food and accessories for your flock, herd and pets —
               trusted by thousands across Nigeria.

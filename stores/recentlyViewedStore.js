@@ -28,7 +28,7 @@ export const useRecentlyViewedStore = create(
 
       clear: () => set({ ids: [] }),
     }),
-    { name: 'petdo-recently-viewed' }
+    { name: 'vetneeds-recently-viewed' }
   )
 )
 

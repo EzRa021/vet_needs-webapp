@@ -204,7 +204,7 @@ export default function AdminProductsPage() {
             disabled={items.length === 0}
             onClick={() =>
               downloadCsv(
-                `petdo-products-${new Date().toISOString().slice(0, 10)}.csv`,
+                `vetneeds-products-${new Date().toISOString().slice(0, 10)}.csv`,
                 items,
                 [
                   { key: "sku", label: "SKU" },

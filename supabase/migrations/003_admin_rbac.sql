@@ -1,5 +1,5 @@
 -- ============================================================
--- PetDo — Admin RBAC (roles, profiles, admin write policies)
+-- VetNeeds — Admin RBAC (roles, profiles, admin write policies)
 --
 -- Adds a profiles table with a role per user, helper functions, and
 -- RLS policies so staff/admins can manage the shop while customers

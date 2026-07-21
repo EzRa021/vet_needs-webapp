@@ -14,16 +14,16 @@ export const metadata: Metadata = {
   // localhost and link previews break in production. Next warns about this at
   // build time and it's easy to ignore until someone shares a product on
   // WhatsApp and gets a blank card.
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://petdo.ng"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://vetneeds.ng"),
   title: {
-    default: "PetDo — Poultry Feed, Pet Food & Farm Supplies in Nigeria",
-    template: "%s | PetDo",
+    default: "VetNeeds — Poultry Feed, Pet Food & Farm Supplies in Nigeria",
+    template: "%s | VetNeeds",
   },
   description:
     "Quality poultry feed, pet food and farm & pet accessories delivered across Nigeria. Secure Paystack checkout.",
   openGraph: {
     type: "website",
-    siteName: "PetDo",
+    siteName: "VetNeeds",
     locale: "en_NG",
   },
   // The shop sells feed to farmers as much as food to pet owners — the old
