@@ -252,9 +252,13 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Rubber-stamp quality seal */}
-            <div className="stamp absolute left-0 top-4 h-24 w-24 text-[10px] font-extrabold tracking-[0.15em] shadow-lg sm:h-28 sm:w-28">
-              <BadgeCheck className="mb-1 h-5 w-5" />
+            {/* Rubber-stamp quality seal.
+                Sat at top-4 inside the frame at a flat 96/112px, which on a
+                phone covered a good part of the animals. Now it straddles the
+                top edge instead of resting on the artwork, and scales with the
+                viewport rather than staying poster-sized on a 375px screen. */}
+            <div className="stamp absolute -top-2 left-0 h-16 w-16 text-[8px] font-extrabold leading-tight tracking-[0.12em] shadow-lg sm:-top-3 sm:h-20 sm:w-20 sm:text-[9px] lg:h-24 lg:w-24 lg:text-[10px] lg:tracking-[0.15em]">
+              <BadgeCheck className="mb-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 lg:mb-1 lg:h-5 lg:w-5" />
               <span>Quality</span>
               <span>Assured</span>
             </div>
