@@ -39,6 +39,21 @@ module.exports = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        // components/ui/sidebar.tsx styles itself entirely through these.
+        // Without the scale registered here Tailwind never emits bg-sidebar,
+        // bg-sidebar-accent, ring-sidebar-ring etc., so the admin sidebar had
+        // no background of its own — most visible as a transparent drawer on
+        // mobile, where there is no page chrome behind it.
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
