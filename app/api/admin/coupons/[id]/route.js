@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
-import { buildPayload, validate, friendlyCouponError } from '../route'
+import { parseAdminBody, CouponUpdateSchema } from '@/lib/validation/admin'
+import { buildPayload, friendlyCouponError } from '../route'
 
 // GET /api/admin/coupons/[id] - coupon + who redeemed it
 export async function GET(request, { params }) {
@@ -68,11 +69,12 @@ export async function PATCH(request, { params }) {
 
   try {
     const { id } = await params
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      CouponUpdateSchema
+    )
+    if (response) return response
     const payload = buildPayload(body)
-
-    const problem = validate(payload, { creating: false })
-    if (problem) return NextResponse.json({ error: problem }, { status: 400 })
 
     // used_count reflects real redemptions — never editable by hand.
     delete payload.used_count

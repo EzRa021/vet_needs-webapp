@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, ProductCreateSchema } from '@/lib/validation/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const SORTABLE = new Set(['name', 'price', 'stock', 'created_at', 'updated_at'])
@@ -11,12 +12,25 @@ function buildPayload(body) {
   const str = (k, max = 500) => {
     if (typeof body[k] === 'string') out[k] = body[k].trim().slice(0, max) || null
   }
+  // An absent key means "leave this column alone"; only an explicitly empty
+  // value ('' or null) clears it.
+  //
+  // This used to write null for absent keys, which made PATCH destructive: a
+  // body of { price } also nulled vat_rate, stock, low_stock_threshold,
+  // compare_at_price and cost_price. The NOT NULL columns turned that into a
+  // 500-shaped DB error; the nullable ones silently wiped data. It only stayed
+  // hidden because product-form.jsx always submits the whole product.
+  //
+  // On create the same change is an improvement: an omitted vat_rate now takes
+  // the column default (7.5) instead of failing its NOT NULL constraint.
   const num = (k, { min = 0, max = 1e12 } = {}) => {
-    if (body[k] === '' || body[k] === null || body[k] === undefined) {
+    if (!(k in body)) return
+    const raw = body[k]
+    if (raw === '' || raw === null || raw === undefined) {
       out[k] = null
       return
     }
-    const n = Number(body[k])
+    const n = Number(raw)
     if (Number.isFinite(n)) out[k] = Math.min(Math.max(n, min), max)
   }
   const bool = (k) => {
@@ -175,15 +189,12 @@ export async function POST(request) {
   const admin = createAdminClient()
 
   try {
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      ProductCreateSchema
+    )
+    if (response) return response
     const payload = buildPayload(body)
-
-    if (!payload.name) {
-      return NextResponse.json({ error: 'Product name is required' }, { status: 400 })
-    }
-    if (payload.price === null || payload.price === undefined) {
-      return NextResponse.json({ error: 'Price is required' }, { status: 400 })
-    }
 
     const { data, error } = await admin.from('items').insert([payload]).select().single()
     if (error) {

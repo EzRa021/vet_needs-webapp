@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, ProductUpdateSchema } from '@/lib/validation/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildPayload, friendlyItemError } from '../route'
 
@@ -59,12 +60,12 @@ export async function PATCH(request, { params }) {
 
   try {
     const { id } = await params
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      ProductUpdateSchema
+    )
+    if (response) return response
     const payload = buildPayload(body)
-
-    if ('name' in payload && !payload.name) {
-      return NextResponse.json({ error: 'Product name is required' }, { status: 400 })
-    }
     if (Object.keys(payload).length === 0) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }

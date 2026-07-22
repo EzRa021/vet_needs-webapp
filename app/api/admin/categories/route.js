@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, CategoryCreateSchema } from '@/lib/validation/admin'
 
 // GET /api/admin/categories - full tree (including inactive nodes) + product counts
 export async function GET() {
@@ -55,11 +56,12 @@ export async function POST(request) {
   const { supabase } = auth
 
   try {
-    const body = await request.json()
-    const name = (body.name || '').trim()
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
-    }
+    const { data: body, response } = await parseAdminBody(
+      request,
+      CategoryCreateSchema
+    )
+    if (response) return response
+    const name = body.name
 
     const payload = {
       name,

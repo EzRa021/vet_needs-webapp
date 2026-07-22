@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, ReviewUpdateSchema } from '@/lib/validation/admin'
 
 // PATCH /api/admin/reviews/[id] — hide or restore a review.
 //
@@ -16,13 +17,11 @@ export async function PATCH(request, { params }) {
     const { supabase } = auth
     const { id } = await params
 
-    const body = await request.json()
-    if (typeof body.is_approved !== 'boolean') {
-      return NextResponse.json(
-        { error: 'is_approved (boolean) is required' },
-        { status: 400 }
-      )
-    }
+    const { data: body, response } = await parseAdminBody(
+      request,
+      ReviewUpdateSchema
+    )
+    if (response) return response
 
     const { data, error } = await supabase
       .from('reviews')

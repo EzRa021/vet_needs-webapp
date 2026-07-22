@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, ProductBulkSchema } from '@/lib/validation/admin'
 
 const MAX_IDS = 200
 
@@ -22,15 +23,12 @@ export async function POST(request) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
     const { supabase } = auth
-    const body = await request.json()
-
-    const ids = Array.isArray(body.ids)
-      ? body.ids.filter((id) => typeof id === 'string').slice(0, MAX_IDS)
-      : []
-
-    if (ids.length === 0) {
-      return NextResponse.json({ error: 'No products selected' }, { status: 400 })
-    }
+    const { data: body, response } = await parseAdminBody(
+      request,
+      ProductBulkSchema
+    )
+    if (response) return response
+    const ids = body.ids
 
     // ---- activate / deactivate ----
     if (body.action === 'activate' || body.action === 'deactivate') {

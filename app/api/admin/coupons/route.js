@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, CouponCreateSchema } from '@/lib/validation/admin'
 
 // Coupons are admin-only (RLS: "admins manage coupons"). Staff must not be able
 // to mint discounts.
@@ -66,29 +67,6 @@ function buildPayload(body) {
   return out
 }
 
-function validate(payload, { creating }) {
-  if (creating && !payload.code) return 'Give the coupon a code.'
-  if (payload.code && payload.code.length < 3) return 'Codes must be at least 3 characters.'
-  if (creating && !payload.discount_type) return 'Choose a discount type.'
-
-  if (creating && (payload.discount_value === undefined || payload.discount_value <= 0)) {
-    return 'The discount must be greater than zero.'
-  }
-  if (
-    payload.discount_type === 'percent' &&
-    payload.discount_value !== undefined &&
-    payload.discount_value > 100
-  ) {
-    return "A percentage discount can't be more than 100%."
-  }
-  if (payload.starts_at && payload.expires_at) {
-    if (new Date(payload.expires_at) <= new Date(payload.starts_at)) {
-      return 'The end date must be after the start date.'
-    }
-  }
-  return null
-}
-
 // GET /api/admin/coupons
 export async function GET(request) {
   const auth = await getStaffUser({ requireAdmin: true })
@@ -127,11 +105,12 @@ export async function POST(request) {
   const { supabase } = auth
 
   try {
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      CouponCreateSchema
+    )
+    if (response) return response
     const payload = buildPayload(body)
-
-    const problem = validate(payload, { creating: true })
-    if (problem) return NextResponse.json({ error: problem }, { status: 400 })
 
     // used_count is owned by redemption — never accepted from the client.
     delete payload.used_count
@@ -147,7 +126,7 @@ export async function POST(request) {
   }
 }
 
-export { buildPayload, validate }
+export { buildPayload }
 
 export function friendlyCouponError(error) {
   const msg = error?.message || ''

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, PromotionUpdateSchema } from '@/lib/validation/admin'
 import { buildPayload } from '../route'
 
 // PATCH /api/admin/promotions/[id]
@@ -10,12 +11,12 @@ export async function PATCH(request, { params }) {
   }
   try {
     const { id } = await params
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      PromotionUpdateSchema
+    )
+    if (response) return response
     const payload = buildPayload(body)
-
-    if ('title' in payload && !payload.title) {
-      return NextResponse.json({ error: 'Give the promotion a title.' }, { status: 400 })
-    }
     if (Object.keys(payload).length === 0) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, CategoryUpdateSchema } from '@/lib/validation/admin'
 import { friendlyDbError } from '../route'
 
 // PATCH /api/admin/categories/[id] - rename, move, reorder, activate/deactivate
@@ -12,7 +13,11 @@ export async function PATCH(request, { params }) {
 
   try {
     const { id } = await params
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      CategoryUpdateSchema
+    )
+    if (response) return response
 
     const patch = {}
     if (typeof body.name === 'string' && body.name.trim()) patch.name = body.name.trim()

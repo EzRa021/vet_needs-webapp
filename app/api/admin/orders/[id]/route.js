@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, OrderUpdateSchema } from '@/lib/validation/admin'
 import { sendEmail } from '@/lib/email/send'
 import { orderShippedEmail, orderDeliveredEmail } from '@/lib/email/templates'
 
@@ -96,7 +97,11 @@ export async function PATCH(request, { params }) {
 
   try {
     const { id } = await params
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      OrderUpdateSchema
+    )
+    if (response) return response
 
     const { data: current, error: readError } = await supabase
       .from('orders')

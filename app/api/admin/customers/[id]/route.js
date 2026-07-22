@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, CustomerRoleSchema } from '@/lib/validation/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const ROLES = ['customer', 'staff', 'admin']
+// ROLES now lives in lib/validation/admin.js, where CustomerRoleSchema enforces it.
 const PAID = ['paid', 'processing', 'shipped', 'delivered']
 
 // GET /api/admin/customers/[id] - profile + order history
@@ -88,12 +89,12 @@ export async function PATCH(request, { params }) {
 
   try {
     const { id } = await params
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      CustomerRoleSchema
+    )
+    if (response) return response
     const role = body.role
-
-    if (!ROLES.includes(role)) {
-      return NextResponse.json({ error: 'That role is not valid.' }, { status: 400 })
-    }
 
     const { data: target, error: readError } = await supabase
       .from('profiles')

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, PromotionCreateSchema } from '@/lib/validation/admin'
 
 export const PLACEMENTS = ['home_hero', 'home_banner', 'shop_banner', 'popup']
 
@@ -59,16 +60,13 @@ export async function POST(request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
   try {
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      PromotionCreateSchema
+    )
+    if (response) return response
     const payload = buildPayload(body)
-
-    if (!payload.title) {
-      return NextResponse.json({ error: 'Give the promotion a title.' }, { status: 400 })
-    }
     if (!payload.placement) payload.placement = 'home_hero'
-    if (payload.starts_at && payload.ends_at && new Date(payload.ends_at) <= new Date(payload.starts_at)) {
-      return NextResponse.json({ error: 'The end date must be after the start date.' }, { status: 400 })
-    }
 
     const { data, error } = await auth.supabase
       .from('promotions')

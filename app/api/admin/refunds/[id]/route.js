@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, RefundActionSchema } from '@/lib/validation/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createPaystackRefund } from '@/lib/payments/paystack'
 
@@ -22,7 +23,11 @@ export async function PATCH(request, { params }) {
     }
     const { user } = auth
     const { id } = await params
-    const body = await request.json()
+    const { data: body, response } = await parseAdminBody(
+      request,
+      RefundActionSchema
+    )
+    if (response) return response
 
     const admin = createAdminClient()
     const { data: req, error: readErr } = await admin

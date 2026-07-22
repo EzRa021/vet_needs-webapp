@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { parseAdminBody, SettingsUpdateSchema } from '@/lib/validation/admin'
 import { invalidateSettingsCache } from '@/lib/settings'
 
 // Only these keys are editable from the admin. Anything else in the request
@@ -40,8 +41,12 @@ export async function PATCH(request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
   try {
-    const body = await request.json()
-    const values = body.values || {}
+    const { data: body, response } = await parseAdminBody(
+      request,
+      SettingsUpdateSchema
+    )
+    if (response) return response
+    const values = body.values
 
     const updates = []
     for (const [key, raw] of Object.entries(values)) {
