@@ -38,6 +38,7 @@ import { useCartStore } from "@/stores/cartStore"
 import { useWishlistIds } from "@/stores/wishlistStore"
 import { useTaxonomy } from "@/stores/shopStore"
 import { useIsStaff } from "@/stores/adminStore"
+import BrandLogo from "@/components/brand-logo"
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -140,9 +141,7 @@ export default function Header() {
           <div className="flex h-20 items-center justify-between gap-4">
             {/* Logo — grain/wheat mark */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="VetNeeds home">
-              <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm ring-2 ring-earth/40">
-                <Wheat className="h-5 w-5" />
-              </div>
+              <BrandLogo size={44} priority className="shadow-sm ring-2 ring-earth/40" />
               <div className="flex flex-col leading-none">
                 <span className="font-display text-xl font-extrabold tracking-tight">VetNeeds</span>
                 <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">

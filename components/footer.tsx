@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useState } from "react"
 import {
-  PawPrint,
   Facebook,
   Instagram,
   Twitter,
@@ -20,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { LEGAL, whatsappLink } from "@/lib/legal"
+import BrandLogo from "@/components/brand-logo"
 
 const SHOP_LINKS = [
   { label: "All Products", href: "/shop" },
@@ -137,9 +137,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
           <div className="col-span-2 space-y-4 lg:col-span-2">
             <Link href="/" className="flex items-center gap-2.5" aria-label="VetNeeds home">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <PawPrint className="h-5 w-5" />
-              </div>
+              <BrandLogo size={40} className="rounded-xl" />
               <span className="font-display text-xl font-bold">VetNeeds</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">

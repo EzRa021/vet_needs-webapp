@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
-import { Wheat, LogOut, Store, ChevronUp, Sun, Moon } from "lucide-react"
+import { LogOut, Store, ChevronUp, Sun, Moon } from "lucide-react"
 
 import {
   Sidebar,
@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge"
 import { ADMIN_NAV, canSee } from "@/components/admin/admin-nav"
 import { useProfile, useUnreadMessageCount } from "@/stores/adminStore"
 import { useLogout } from "@/stores/authStore"
+import BrandLogo from "@/components/brand-logo"
 
 const THEME_LABEL = { light: "Light", dark: "Dark", system: "System" }
 const THEME_CYCLE = ["light", "dark", "system"]
@@ -85,9 +86,7 @@ export default function AdminSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/admin">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Wheat />
-                </div>
+                <BrandLogo size={32} className="rounded-lg" />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-display font-bold">VetNeeds</span>
                   <span className="text-xs text-muted-foreground">Admin</span>
