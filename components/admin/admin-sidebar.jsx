@@ -19,6 +19,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   DropdownMenu,
@@ -38,6 +39,7 @@ const THEME_CYCLE = ["light", "dark", "system"]
 
 export default function AdminSidebar() {
   const pathname = usePathname()
+  const { isMobile, setOpenMobile } = useSidebar()
   const { data: profile } = useProfile()
   const logout = useLogout()
   const role = profile?.role
@@ -51,13 +53,33 @@ export default function AdminSidebar() {
   const cycleTheme = () =>
     setTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length])
 
+  // On mobile the sidebar is an overlay sheet covering the page, so following
+  // a link would otherwise leave the destination hidden behind it.
+  //
+  // Handled by delegation on the sidebar root rather than an onClick per Link:
+  // links live in the header, the nav groups, the footer and the account
+  // dropdown, and a new one added later would silently miss the behaviour.
+  // Closing on click (not on the pathname change) means the sheet gets out of
+  // the way immediately, instead of lingering for the length of the navigation.
+  const closeOnNavigate = (event) => {
+    if (!isMobile) return
+    const link = event.target.closest?.("a[href]")
+    if (link && !link.target) setOpenMobile(false)
+  }
+
+  // Safety net for navigation that doesn't originate from a click in here
+  // (the logout redirect, a router.push elsewhere).
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false)
+  }, [pathname])
+
   const initials =
     profile?.full_name?.trim()?.split(/\s+/).map((n) => n[0]).slice(0, 2).join("").toUpperCase() ||
     profile?.email?.[0]?.toUpperCase() ||
     "A"
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" onClick={closeOnNavigate}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

@@ -331,7 +331,14 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        'relative flex min-h-svh flex-1 flex-col bg-background',
+        // min-w-0 is load-bearing. As a flex item this defaults to
+        // min-width:auto, which refuses to shrink below its content's
+        // intrinsic width — so one wide table stretched <main> past the
+        // viewport and took every admin page's layout with it. The table's own
+        // overflow-x-auto wrapper was powerless: it inherits its width from
+        // this element, so it grew instead of scrolling. With min-w-0 the
+        // inset is capped at the viewport and the wrapper scrolls as intended.
+        'relative flex min-h-svh min-w-0 flex-1 flex-col bg-background',
         'peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow',
         className,
       )}

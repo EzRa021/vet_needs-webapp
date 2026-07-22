@@ -364,10 +364,14 @@ export default function AdminDashboardPage() {
 
       {/* Trend + low stock */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        {/* min-w-0: a grid item defaults to min-width:auto, and recharts'
+            ResponsiveContainer reports the width it last measured rather than
+            shrinking — between them the chart card grew past a 375px viewport
+            and pushed the whole page sideways. */}
+        <Card className="min-w-0 lg:col-span-2">
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="flex flex-col gap-1">
+              <div className="flex min-w-0 flex-col gap-1">
                 <CardTitle className="text-base">
                   {metric === "revenue" ? "Revenue trend" : "Order volume"}
                 </CardTitle>

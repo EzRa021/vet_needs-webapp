@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -66,6 +66,22 @@ const iconFor = (slug) => DEPARTMENT_ICONS[slug] || Wheat
 export default function Header() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // The drawer covers the page, so tapping a link has to dismiss it or the
+  // destination stays hidden behind it. Delegated from the drawer root so every
+  // link is covered — departments, the nav list, the per-category links and
+  // anything added later — and it fires on click rather than on the pathname
+  // change, so the drawer leaves immediately instead of sitting over the new
+  // page for the length of the navigation.
+  const closeOnNavigate = (event) => {
+    const link = event.target.closest?.("a[href]")
+    if (link && !link.target) setMobileOpen(false)
+  }
+
+  // Covers navigation that didn't start with a click in the drawer.
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
   const { data: user } = useUser()
   const logout = useLogout()
   const { data: taxonomy } = useTaxonomy()
@@ -264,6 +280,7 @@ export default function Header() {
                 <SheetContent
                   side="left"
                   className="flex w-80 max-w-[85vw] flex-col overflow-y-auto overscroll-contain"
+                  onClick={closeOnNavigate}
                 >
                   {/* Radix requires a title on every dialog/sheet so screen
                       readers can announce the panel. The drawer is visually
