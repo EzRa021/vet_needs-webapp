@@ -79,6 +79,9 @@ export default function ProductForm({ product }) {
 
   const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState(null)
+  // Blocks submit while an image is still uploading — saving mid-upload would
+  // persist the previous image_url and quietly discard the new file.
+  const [uploading, setUploading] = useState(false)
 
   // The "Default VAT rate" setting is meant to be exactly this — the value a new
   // product starts with. Nothing read it before, so the admin could change it
@@ -169,6 +172,23 @@ export default function ProductForm({ product }) {
     }
   }
 
+  const cancelHref = isEdit ? `/admin/products/${product.id}` : "/admin/products"
+  const actions = (
+    <>
+      <Button type="button" variant="outline" asChild>
+        <Link href={cancelHref}>Cancel</Link>
+      </Button>
+      <Button type="submit" disabled={save.isPending || uploading}>
+        {(save.isPending || uploading) && <Spinner data-icon="inline-start" />}
+        {uploading
+          ? "Uploading image…"
+          : isEdit
+            ? "Save changes"
+            : "Create product"}
+      </Button>
+    </>
+  )
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Header */}
@@ -189,15 +209,11 @@ export default function ProductForm({ product }) {
               : "Fill in the details. The product goes live once it's active."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" asChild>
-            <Link href={isEdit ? `/admin/products/${product.id}` : "/admin/products"}>Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={save.isPending}>
-            {save.isPending && <Spinner data-icon="inline-start" />}
-            {isEdit ? "Save changes" : "Create product"}
-          </Button>
-        </div>
+        {/* Desktop keeps the actions in the header, where there is room beside
+            the title. On a phone they would sit above every field — you would
+            reach for Save before you had filled anything in — so they move to
+            the end of the form instead. Defined once, placed twice. */}
+        <div className="hidden items-center gap-2 md:flex">{actions}</div>
       </div>
 
       {error && (
@@ -566,6 +582,7 @@ export default function ProductForm({ product }) {
               <ImageUpload
                 value={form.image_url}
                 onChange={set("image_url")}
+                onUploadingChange={setUploading}
                 folder="products"
                 label={form.name || "Product image"}
                 className="[&>div:first-child]:w-full"
@@ -597,6 +614,12 @@ export default function ProductForm({ product }) {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Mobile action bar — the same buttons, at the end of the form where you
+          actually finish. grid-cols-2 gives both a full-width thumb target. */}
+      <div className="grid grid-cols-2 gap-2 [&>*]:w-full md:hidden">
+        {actions}
       </div>
     </form>
   )

@@ -134,6 +134,19 @@ export default function CouponForm({ coupon }) {
     }
   }
 
+  const cancelHref = isEdit ? `/admin/coupons/${coupon.id}` : "/admin/coupons"
+  const actions = (
+    <>
+      <Button type="button" variant="outline" asChild>
+        <Link href={cancelHref}>Cancel</Link>
+      </Button>
+      <Button type="submit" disabled={save.isPending}>
+        {save.isPending && <Spinner data-icon="inline-start" />}
+        {isEdit ? "Save changes" : "Create coupon"}
+      </Button>
+    </>
+  )
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -151,15 +164,8 @@ export default function CouponForm({ coupon }) {
             Discount codes customers enter at checkout.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" asChild>
-            <Link href={isEdit ? `/admin/coupons/${coupon.id}` : "/admin/coupons"}>Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={save.isPending}>
-            {save.isPending && <Spinner data-icon="inline-start" />}
-            {isEdit ? "Save changes" : "Create coupon"}
-          </Button>
-        </div>
+        {/* Desktop only; the mobile copy sits at the end of the form. */}
+        <div className="hidden items-center gap-2 md:flex">{actions}</div>
       </div>
 
       {error && (
@@ -475,6 +481,12 @@ export default function CouponForm({ coupon }) {
             </AlertDescription>
           </Alert>
         </div>
+      </div>
+
+      {/* Mobile action bar — see product-form: actions belong at the end of the
+          form on a phone, not above the first field. */}
+      <div className="grid grid-cols-2 gap-2 [&>*]:w-full md:hidden">
+        {actions}
       </div>
     </form>
   )

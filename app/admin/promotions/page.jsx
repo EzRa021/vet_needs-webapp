@@ -97,6 +97,9 @@ export default function AdminPromotionsPage() {
   const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
+  // Submit stays disabled until the banner upload settles, so the promotion
+  // can't be saved pointing at the previous image.
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -353,6 +356,7 @@ export default function AdminPromotionsPage() {
                 <ImageUpload
                   value={form.image_url}
                   onChange={(v) => setForm((f) => ({ ...f, image_url: v }))}
+                  onUploadingChange={setUploading}
                   folder="promotions"
                   label={form.title || "Banner"}
                 />
@@ -417,9 +421,19 @@ export default function AdminPromotionsPage() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" form="promo-form" disabled={save.isPending}>
-              {save.isPending && <Spinner data-icon="inline-start" />}
-              {editing ? "Save changes" : "Create promotion"}
+            <Button
+              type="submit"
+              form="promo-form"
+              disabled={save.isPending || uploading}
+            >
+              {(save.isPending || uploading) && (
+                <Spinner data-icon="inline-start" />
+              )}
+              {uploading
+                ? "Uploading image…"
+                : editing
+                  ? "Save changes"
+                  : "Create promotion"}
             </Button>
           </DialogFooter>
         </DialogContent>

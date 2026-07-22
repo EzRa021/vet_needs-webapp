@@ -62,6 +62,8 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
     is_active: true,
   })
   const [error, setError] = useState(null)
+  // See product-form: submit stays disabled until the upload settles.
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     setForm({
@@ -316,6 +318,7 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
               <ImageUpload
                 value={form.image_url}
                 onChange={(v) => setForm((f) => ({ ...f, image_url: v }))}
+                onUploadingChange={setUploading}
                 folder="categories"
                 label={form.name || "Category"}
                 className="[&>div:first-child]:w-full"
@@ -325,9 +328,15 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
 
           <Card>
             <CardContent className="flex flex-col gap-2 pt-6">
-              <Button type="submit" disabled={save.isPending}>
-                {save.isPending && <Spinner data-icon="inline-start" />}
-                {isEdit ? "Save changes" : "Create category"}
+              <Button type="submit" disabled={save.isPending || uploading}>
+                {(save.isPending || uploading) && (
+                  <Spinner data-icon="inline-start" />
+                )}
+                {uploading
+                  ? "Uploading image…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Create category"}
               </Button>
               <Button type="button" variant="outline" asChild>
                 <Link href="/admin/categories">Cancel</Link>

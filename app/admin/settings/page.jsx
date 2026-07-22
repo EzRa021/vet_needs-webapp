@@ -77,6 +77,14 @@ export default function AdminSettingsPage() {
     )
   }
 
+  const actions = (
+    <Button type="submit" disabled={!dirty || save.isPending}>
+      {save.isPending && <Spinner data-icon="inline-start" />}
+      <Save data-icon="inline-start" />
+      Save changes
+    </Button>
+  )
+
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -89,11 +97,8 @@ export default function AdminSettingsPage() {
             <ShieldCheck className="size-3.5" />
             Admin only
           </Badge>
-          <Button type="submit" disabled={!dirty || save.isPending}>
-            {save.isPending && <Spinner data-icon="inline-start" />}
-            <Save data-icon="inline-start" />
-            Save changes
-          </Button>
+          {/* Desktop only; mobile copy is at the end of the form. */}
+          <div className="hidden md:block">{actions}</div>
         </div>
       </div>
 
@@ -226,6 +231,9 @@ export default function AdminSettingsPage() {
           products; each product carries its own VAT setting.
         </AlertDescription>
       </Alert>
+
+      {/* Mobile: the only action, at the end of the settings list. */}
+      <div className="[&>*]:w-full md:hidden">{actions}</div>
     </form>
   )
 }

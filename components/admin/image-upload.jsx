@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Upload, X, Loader2, ImageIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -32,15 +32,27 @@ export default function ImageUpload({
   folder = "products",
   label = "Image",
   className,
+  // Lets the surrounding form disable its submit button while a file is in
+  // flight. Without it a fast click on Save posts the record with the OLD
+  // image_url and silently drops the upload the user is still waiting on.
+  onUploadingChange,
 }) {
   const { toast } = useToast()
   const inputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
 
+  const setBusy = (busy) => {
+    setUploading(busy)
+    onUploadingChange?.(busy)
+  }
+
+  // A parent that unmounts mid-upload must not be left stuck "busy".
+  useEffect(() => () => onUploadingChange?.(false), [])
+
   const handleFile = async (file) => {
     if (!file) return
-    setUploading(true)
+    setBusy(true)
     try {
       const { url } = await uploadImage(file, folder)
       onChange(url)
@@ -52,7 +64,7 @@ export default function ImageUpload({
         variant: "destructive",
       })
     } finally {
-      setUploading(false)
+      setBusy(false)
       // Let the same file be picked again after a failure.
       if (inputRef.current) inputRef.current.value = ""
     }
