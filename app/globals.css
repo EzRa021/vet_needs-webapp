@@ -170,7 +170,12 @@
   .stamp {
     @apply flex flex-col items-center justify-center rounded-full text-center uppercase;
     border: 2px dashed hsl(var(--earth));
-    color: hsl(var(--earth-foreground));
+    /* --earth-foreground is the colour meant to sit ON the earth fill, but the
+       stamp's fill is --background, not earth. In dark mode that put a very
+       dark brown on a dark surface — 1.12:1, illegible. --foreground tracks
+       the theme and stays readable in both; the gold stays on the border,
+       which is what carries the rubber-stamp look. */
+    color: hsl(var(--foreground));
     background: hsl(var(--background));
     transform: rotate(-9deg);
   }
