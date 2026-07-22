@@ -1,15 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import { Wheat, ShieldCheck, Truck, Leaf } from "lucide-react"
+import { ShieldCheck, Truck, Leaf } from "lucide-react"
 
 import BrandImage from "@/components/brand-image"
+import BrandLogo from "@/components/brand-logo"
 
 // Split-screen auth layout: brand panel (desktop) + form column.
 // Used by login, register, forgot-password and reset-password.
 export default function AuthShell({ title, subtitle, children, footer }) {
+  // Height was min-h-[calc(100vh-5rem)], subtracting the 5rem storefront
+  // header — but site-chrome.jsx lists the auth routes as "bare" and renders
+  // no header or footer on them, so that 80px came off nothing and left a gap
+  // under the panel. Fills the viewport instead; dvh rather than vh so a
+  // mobile browser's collapsing toolbar doesn't overshoot. flex-1 keeps it
+  // filling should the layout ever gain a sibling.
   return (
-    <div className="grid min-h-[calc(100vh-5rem)] lg:grid-cols-2">
+    <div className="grid min-h-dvh flex-1 lg:grid-cols-2">
       {/* Brand panel — hidden on mobile */}
       <div className="relative hidden overflow-hidden bg-primary lg:block">
         <BrandImage
@@ -24,9 +31,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/95 to-primary/70" />
         <div className="relative flex h-full flex-col justify-between p-12 text-primary-foreground">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/15">
-              <Wheat className="h-5 w-5" />
-            </div>
+            <BrandLogo size={40} className="rounded-xl" />
             <span className="font-display text-xl font-bold">VetNeeds</span>
           </Link>
 
@@ -61,9 +66,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         <div className="w-full max-w-md">
           {/* Mobile brand mark */}
           <Link href="/" className="mb-8 flex items-center justify-center gap-2.5 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Wheat className="h-5 w-5" />
-            </div>
+            <BrandLogo size={40} className="rounded-xl" />
             <span className="font-display text-xl font-bold">VetNeeds</span>
           </Link>
 
