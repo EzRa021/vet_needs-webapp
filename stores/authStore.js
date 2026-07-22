@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { siteUrlTo } from '@/lib/site-url'
 
 // Zustand Store for Auth UI State
 export const useAuthStore = create((set) => ({
@@ -74,7 +75,7 @@ export const useRegister = () => {
         options: {
           // Where the "Confirm your email" link lands (must be in the
           // Supabase dashboard's allowed Redirect URLs)
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: siteUrlTo('/auth/callback'),
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -137,7 +138,7 @@ export const loginWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: siteUrlTo('/auth/callback'),
     },
   })
   
@@ -154,7 +155,7 @@ export const loginWithFacebook = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'facebook',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: siteUrlTo('/auth/callback'),
     },
   })
   
@@ -172,7 +173,7 @@ export const useForgotPassword = () => {
     mutationFn: async ({ email }) => {
       const supabase = createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: siteUrlTo('/reset-password'),
       })
       
       if (error) throw error

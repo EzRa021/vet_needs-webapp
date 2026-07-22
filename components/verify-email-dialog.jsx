@@ -17,6 +17,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/hooks/use-toast"
 import { getWebmail } from "@/lib/email-provider"
 import { createClient } from "@/lib/supabase/client"
+import { siteUrlTo } from '@/lib/site-url'
 
 // Shown after signup: the account exists but can't be used until the emailed
 // link is clicked. Deliberately has no close-to-dismiss escape into the app.
@@ -33,7 +34,7 @@ export default function VerifyEmailDialog({ open, email, onOpenChange }) {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: siteUrlTo('/auth/callback') },
       })
       if (error) throw error
       toast({

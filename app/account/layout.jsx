@@ -12,6 +12,7 @@ import { useUser, useLogout } from "@/stores/authStore"
 import { getWebmail } from "@/lib/email-provider"
 import { createClient } from "@/lib/supabase/client"
 import AccountNav from "@/components/account-nav"
+import { siteUrlTo } from '@/lib/site-url'
 
 // Gate for every /account page: signed in AND email confirmed.
 // An unconfirmed account must not reach its profile or order history.
@@ -46,7 +47,7 @@ export default function AccountLayout({ children }) {
         const { error } = await supabase.auth.resend({
           type: "signup",
           email: user.email,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          options: { emailRedirectTo: siteUrlTo('/auth/callback') },
         })
         if (error) throw error
         toast({

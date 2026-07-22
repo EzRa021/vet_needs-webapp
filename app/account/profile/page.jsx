@@ -30,6 +30,7 @@ import { useProfile } from "@/stores/adminStore"
 import { createClient } from "@/lib/supabase/client"
 import { friendlyAuthError } from "@/lib/auth-errors"
 import { roleMeta } from "@/lib/roles"
+import { siteUrlTo } from '@/lib/site-url'
 
 export default function ProfilePage() {
   const { toast } = useToast()
@@ -142,7 +143,7 @@ export default function ProfilePage() {
       const supabase = createClient()
       const { error } = await supabase.auth.updateUser(
         { email },
-        { emailRedirectTo: `${window.location.origin}/auth/callback` }
+        { emailRedirectTo: siteUrlTo('/auth/callback') }
       )
       if (error) throw error
 
