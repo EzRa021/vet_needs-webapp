@@ -120,6 +120,20 @@ export default function ProductForm({ product }) {
   const categories = flatten(tree || [])
   const isKg = form.unit_type === "kg"
 
+  // ── The category this product arrived with ────────────────────────────────
+  //
+  // Kept so a save can tell "the user chose this" from "this is what was
+  // already there". A product whose stored category is not one of ours — an id
+  // left by an import, or a category since deleted — must still be editable:
+  // the field it is wrong in is not the field being edited.
+  const savedCategory = product?.category_id ?? null
+  // Only once the list has actually loaded. A slow taxonomy fetch must not
+  // accuse a perfectly good category of being unrecognised.
+  const categoryUnknown =
+    Boolean(tree) &&
+    form.category_id !== NO_CATEGORY &&
+    !categories.some((c) => c.id === form.category_id)
+
   const margin =
     Number(form.price) > 0 && Number(form.cost_price) > 0
       ? Math.round(((Number(form.price) - Number(form.cost_price)) / Number(form.price)) * 1000) / 10
@@ -148,7 +162,8 @@ export default function ProductForm({ product }) {
     }
 
     try {
-      const { stock, ...rest } = form
+      const { stock, category_id, ...rest } = form
+      const picked = category_id === NO_CATEGORY ? null : category_id
 
       const saved = await save.mutateAsync({
         id: product?.id,
@@ -159,7 +174,17 @@ export default function ProductForm({ product }) {
         // and silently revert their adjustment, logging a reasonless change on
         // top. Stock moves through adjust_stock() (021) or not at all.
         ...(isEdit ? {} : { stock }),
-        category_id: form.category_id === NO_CATEGORY ? null : form.category_id,
+        // ── THE CATEGORY GOES UP ONLY WHEN IT CHANGED ────────────────────────
+        //
+        // PATCH is a partial and an absent key means "leave this column
+        // alone", so an untouched category is simply not mentioned.
+        //
+        // This is what lets a product with an unrecognised category be edited
+        // at all. Its id went up unchanged on every save, validation refused
+        // it — "That id is not valid." in a red banner — and the save was lost
+        // whatever it was for: a price, a description, a photograph nobody
+        // could see was the thing being blocked.
+        ...(!isEdit || picked !== savedCategory ? { category_id: picked } : {}),
       })
       toast({
         title: isEdit ? "Product updated" : "Product created",
@@ -565,7 +590,15 @@ export default function ProductForm({ product }) {
                   </SelectContent>
                 </Select>
                 <FieldDescription>
-                  Shoppers find this under its category and everything above it.
+                  {categoryUnknown ? (
+                    <>
+                      This product is filed under a category that is not in your
+                      list — <span className="font-mono">{form.category_id}</span>.
+                      It stays as it is unless you choose one here.
+                    </>
+                  ) : (
+                    "Shoppers find this under its category and everything above it."
+                  )}
                 </FieldDescription>
               </Field>
             </CardContent>
