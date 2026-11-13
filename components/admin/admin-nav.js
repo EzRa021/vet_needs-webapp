@@ -34,7 +34,7 @@ export const ADMIN_NAV = [
     items: [
       { title: "Categories", href: "/admin/categories", icon: FolderTree, role: "staff", ready: true },
       { title: "Products", href: "/admin/products", icon: Package, role: "staff", ready: true },
-      { title: "Inventory", href: "/admin/inventory", icon: Boxes, role: "admin", ready: true },
+      { title: "Inventory", href: "/admin/inventory", icon: Boxes, role: "admin", ready: true, badge: "stock" },
     ],
   },
   {

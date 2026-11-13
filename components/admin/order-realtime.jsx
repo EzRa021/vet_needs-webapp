@@ -1,25 +1,20 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { ToastAction } from "@/components/ui/toast"
-import { useToast } from "@/hooks/use-toast"
+import { useAdminAnnounce } from "@/components/admin/use-admin-announce"
 import { createClient } from "@/lib/supabase/client"
 import { formatNaira } from "@/lib/pricing"
 import { orderRef, parseShippingAddress } from "@/lib/order-status"
-import { claimAlert, playChime, showDesktopNotification, unlockAudio } from "@/lib/order-alerts"
+import { unlockAudio } from "@/lib/order-alerts"
 import { useOrderLiveStore } from "@/stores/orderLiveStore"
 
 // A payment counts as "just happened" if paid_at is this recent. Later edits
 // to a paid order (a tracking number, a note) fire UPDATEs too, and must not
 // announce the payment again.
 const PAYMENT_FRESH_MS = 10 * 60 * 1000
-
-// A hidden tab waits this long before claiming an alert, so a tab the person
-// is actually looking at gets to play the chime first.
-const HIDDEN_TAB_DELAY_MS = 400
 
 const customerName = (order) =>
   parseShippingAddress(order.shipping_address).name || order.email || "A customer"
@@ -33,15 +28,8 @@ const customerName = (order) =>
 // "staff read all orders" (003) already lets this user read.
 export default function AdminOrderRealtime() {
   const qc = useQueryClient()
-  const router = useRouter()
   const pathname = usePathname()
-  const { toast } = useToast()
-
-  // Handlers are registered once; refs keep them pointed at the latest values.
-  const routerRef = useRef(router)
-  const toastRef = useRef(toast)
-  routerRef.current = router
-  toastRef.current = toast
+  const announce = useAdminAnnounce()
 
   const unseen = useOrderLiveStore((s) => s.unseen)
   const clearUnseen = useOrderLiveStore((s) => s.clearUnseen)
@@ -64,22 +52,12 @@ export default function AdminOrderRealtime() {
     }
   }, [])
 
-  // "(2) Orders" in the tab title while the tab is in the background.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        document.title = document.title.replace(/^\(\d+\)\s*/, "")
-      }
-    }
-    document.addEventListener("visibilitychange", onVisible)
-    return () => document.removeEventListener("visibilitychange", onVisible)
-  }, [])
-
   useEffect(() => {
     const supabase = createClient()
     const store = useOrderLiveStore.getState
     let wasDisconnected = false
     let refreshTimer = null
+    let onlineCheck = null
 
     // Coalesce bursts (payment confirmation writes the row more than once)
     // into one refetch of whatever order queries are on screen.
@@ -90,45 +68,6 @@ export default function AdminOrderRealtime() {
         qc.invalidateQueries({ queryKey: ["admin", "orders"] })
         qc.invalidateQueries({ queryKey: ["admin", "stats"] })
       }, 250)
-    }
-
-    const bumpTitle = () => {
-      if (document.visibilityState === "visible") return
-      const match = document.title.match(/^\((\d+)\)\s*/)
-      const count = match ? Number(match[1]) + 1 : 1
-      document.title = `(${count}) ${document.title.replace(/^\(\d+\)\s*/, "")}`
-    }
-
-    const announce = async ({ key, kind, title, body, url }) => {
-      const visible = document.visibilityState === "visible" && document.hasFocus()
-      if (!visible) await new Promise((r) => setTimeout(r, HIDDEN_TAB_DELAY_MS))
-
-      const { prefs } = store()
-      const claimed = await claimAlert(key)
-
-      if (claimed) {
-        if (prefs.sound) playChime(kind, prefs.volume)
-        if (prefs.desktop && !visible) {
-          showDesktopNotification({
-            title,
-            body,
-            tag: key,
-            url,
-            onClick: () => routerRef.current.push(url),
-          })
-        }
-      }
-
-      bumpTitle()
-      toastRef.current({
-        title,
-        description: body,
-        action: (
-          <ToastAction altText="Open order" onClick={() => routerRef.current.push(url)}>
-            Open
-          </ToastAction>
-        ),
-      })
     }
 
     const onInsert = ({ new: order }) => {
@@ -203,7 +142,6 @@ export default function AdminOrderRealtime() {
       wasDisconnected = true
       store().setConnection("offline")
     }
-    let onlineCheck = null
     const onOnline = () => {
       store().setConnection("reconnecting")
       refresh()
@@ -225,7 +163,7 @@ export default function AdminOrderRealtime() {
       supabase.removeChannel(channel)
       store().setConnection("idle")
     }
-  }, [qc])
+  }, [qc, announce])
 
   return null
 }

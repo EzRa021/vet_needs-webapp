@@ -94,23 +94,58 @@ export const useDeleteCategory = () => {
 }
 
 // ---------- Products ----------
-export const useAdminProducts = (filters) =>
+const listParams = (filters) => {
+  const params = new URLSearchParams()
+  Object.entries(filters || {}).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== '' && v !== 'all') {
+      params.append(k, String(v))
+    }
+  })
+  return params.toString()
+}
+
+// `pollMs`: fallback refresh while the live stock connection is down (or
+// migration 025 hasn't run). Live, changes arrive by push instead.
+export const useAdminProducts = (filters, { pollMs = false } = {}) =>
   useQuery({
     queryKey: ['admin', 'products', filters],
     queryFn: async () => {
-      const params = new URLSearchParams()
-      Object.entries(filters || {}).forEach(([k, v]) => {
-        if (v !== null && v !== undefined && v !== '' && v !== 'all') {
-          params.append(k, String(v))
-        }
-      })
-      const res = await fetch(`/api/admin/products?${params.toString()}`)
+      const res = await fetch(`/api/admin/products?${listParams(filters)}`)
       if (!res.ok) throw new Error('Failed to load products')
       return res.json()
     },
     placeholderData: (prev) => prev,
     staleTime: 15 * 1000,
+    refetchInterval: pollMs,
   })
+
+// Catalogue health counts. Keyed under ['admin', 'products'] so every product
+// invalidation (saves, bulk edits, the live listener) refreshes them too.
+export const useAdminProductSummary = (filters, { pollMs = false } = {}) =>
+  useQuery({
+    queryKey: ['admin', 'products', 'summary', filters],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/products/summary?${listParams(filters)}`)
+      if (!res.ok) throw new Error('Failed to load product summary')
+      return (await res.json()).data
+    },
+    placeholderData: (prev) => prev,
+    staleTime: 15 * 1000,
+    refetchInterval: pollMs,
+  })
+
+// Every page of a filtered product list (capped), for CSV export.
+export async function fetchAllAdminProducts(filters, { max = 2000 } = {}) {
+  const rows = []
+  for (let page = 1; rows.length < max; page++) {
+    const res = await fetch(`/api/admin/products?${listParams({ ...filters, page, limit: 100 })}`)
+    if (!res.ok) throw new Error('Failed to export products')
+    const json = await res.json()
+    rows.push(...(json.data || []))
+    if (page >= (json.pagination?.pages || 0)) break
+  }
+  return rows.slice(0, max)
+}
 
 export const useAdminProduct = (id) =>
   useQuery({
@@ -125,6 +160,8 @@ export const useAdminProduct = (id) =>
 
 const invalidateProducts = (qc) => {
   qc.invalidateQueries({ queryKey: ['admin', 'products'] })
+  // Inventory shows the same stock, prices and costs.
+  qc.invalidateQueries({ queryKey: ['admin', 'inventory'] })
   qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
   qc.invalidateQueries({ queryKey: ['items'] })
 }
@@ -589,7 +626,7 @@ export const useSendStockNotifications = () => {
 
 // Inventory valuation (023 + inventory route). cost_price is service-role only,
 // so this always comes from the API, never a direct client read.
-export const useInventory = () =>
+export const useInventory = ({ pollMs = false } = {}) =>
   useQuery({
     queryKey: ['admin', 'inventory'],
     queryFn: async () => {
@@ -599,6 +636,23 @@ export const useInventory = () =>
       return json.data
     },
     staleTime: 30 * 1000,
+    refetchInterval: pollMs,
+  })
+
+// Latest stock movements across the catalogue (the live activity feed).
+// Under ['admin', 'inventory'] so the live listener's refresh covers it.
+export const useInventoryMovements = ({ limit = 30, scope = 'stock', pollMs = false } = {}) =>
+  useQuery({
+    queryKey: ['admin', 'inventory', 'movements', { limit, scope }],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/inventory/movements?limit=${limit}&scope=${scope}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to load stock activity')
+      return json.data
+    },
+    placeholderData: (prev) => prev,
+    staleTime: 15 * 1000,
+    refetchInterval: pollMs,
   })
 
 // Reports (017).

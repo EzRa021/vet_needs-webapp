@@ -20,6 +20,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { formatNaira } from "@/lib/pricing"
+import { REASON_LABEL } from "@/lib/stock-movements"
 
 // Renders item_history rows. These are written automatically by the
 // log_item_changes() DB trigger — creation, stock moves, price and VAT edits,
@@ -33,19 +34,7 @@ const TYPE_META = {
   vat_update: { label: "VAT changed", icon: Receipt, variant: "secondary" },
 }
 
-// Reason codes written by adjust_stock() (021). Rendering the raw slug would
-// make the whole feature look half-built the first time someone spoils a bag.
-const REASON_LABEL = {
-  restock: "Delivery from supplier",
-  return: "Customer return",
-  count_correction: "Stock count correction",
-  damaged: "Damaged",
-  expired: "Expired / spoiled",
-  offline_sale: "Sold offline",
-  sample: "Sample or giveaway",
-  theft: "Loss / theft",
-  other: "Other",
-}
+// Reason labels are shared with the Products and Inventory pages.
 
 function describe(entry) {
   const d = entry.details || {}

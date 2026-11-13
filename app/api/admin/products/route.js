@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
 import { parseAdminBody, ProductCreateSchema } from '@/lib/validation/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  PRODUCT_SORTS,
+  applyProductFilters,
+  applyProductStatus,
+  isLowStock,
+  readProductFilters,
+} from '@/lib/product-filters'
 
-const SORTABLE = new Set(['name', 'price', 'stock', 'created_at', 'updated_at'])
 
 // Whitelist of columns staff may write. Anything else in the body is ignored —
 // generated/derived columns (is_available, rating_*, path) are never accepted.
@@ -101,7 +107,11 @@ function buildPayload(body) {
   return out
 }
 
-// GET /api/admin/products?search=&category=&status=&page=&limit=&sortBy=&sortOrder=
+// GET /api/admin/products?search=&category=&status=&sort=&page=&limit=
+//   status: all | active | inactive | featured | low_stock | out_of_stock
+//   sort:   newest | updated | name_asc | name_desc | price_desc | price_asc
+//           | stock_asc | stock_desc
+//   category: a category id (includes its sub-categories), or "none"
 export async function GET(request) {
   const auth = await getStaffUser()
   if (auth.error) {
@@ -111,11 +121,7 @@ export async function GET(request) {
 
   try {
     const { searchParams } = new URL(request.url)
-    const search = (searchParams.get('search') || '').slice(0, 100)
-    const category = searchParams.get('category') || 'all'
-    const status = searchParams.get('status') || 'all'
-    const sortBy = SORTABLE.has(searchParams.get('sortBy')) ? searchParams.get('sortBy') : 'created_at'
-    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'
+    const filters = readProductFilters(searchParams)
     const page = Math.max(parseInt(searchParams.get('page')) || 1, 1)
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit')) || 20, 1), 100)
     const offset = (page - 1) * limit
@@ -130,44 +136,46 @@ export async function GET(request) {
     // NOTE: the FK must be named explicitly. item_categories (the optional
     // multi-placement junction) creates a SECOND items↔categories path, so a
     // bare `categories(...)` embed is ambiguous and PostgREST errors (PGRST201).
+    const lowOnly = filters.status === 'low_stock'
     let query = admin
       .from('items')
       .select('*, category:categories!items_category_id_fkey(id, name, path)', {
-        count: 'exact',
+        count: lowOnly ? undefined : 'exact',
       })
 
-    if (search) {
-      const safe = search.replace(/[,()\\%_]/g, ' ').trim()
-      if (safe) query = query.or(`name.ilike.*${safe}*,sku.ilike.*${safe}*,brand.ilike.*${safe}*`)
+    const applied = await applyProductFilters(query, filters, supabase)
+    if (applied.error) {
+      return NextResponse.json({ error: applied.error }, { status: 400 })
     }
+    query = applyProductStatus(applied.query, filters.status)
 
-    if (category !== 'all') {
-      const { data: ids, error: idsError } = await supabase.rpc('category_descendant_ids', {
-        p_root: category,
-      })
-      if (idsError) {
-        return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
-      }
-      query = query.in('category_id', ids?.length ? ids : [category])
+    const sort = PRODUCT_SORTS[filters.sort]
+    query = query.order(sort.column, { ascending: sort.ascending }).order('id', { ascending: true })
+
+    let rows
+    let total
+    if (lowOnly) {
+      // "At or below its own reorder point" compares two columns, which a
+      // PostgREST filter can't. Fetch the in-stock candidates (already sorted)
+      // and page in JS. Capped: a catalogue past this needs a SQL view instead.
+      const { data, error } = await query.limit(5000)
+      if (error) throw error
+      const low = (data || []).filter(isLowStock)
+      total = low.length
+      rows = low.slice(offset, offset + limit)
+    } else {
+      const { data, error, count } = await query.range(offset, offset + limit - 1)
+      if (error) throw error
+      total = count || 0
+      rows = data || []
     }
-
-    if (status === 'active') query = query.eq('is_active', true)
-    else if (status === 'inactive') query = query.eq('is_active', false)
-    else if (status === 'featured') query = query.eq('is_featured', true)
-    else if (status === 'out_of_stock') query = query.eq('stock', 0)
-
-    const { data, error, count } = await query
-      .order(sortBy, { ascending: sortOrder === 'asc' })
-      .range(offset, offset + limit - 1)
-
-    if (error) throw error
 
     return NextResponse.json({
-      data: data || [],
+      data: rows,
       pagination: {
-        total: count || 0,
+        total,
         page,
-        pages: Math.ceil((count || 0) / limit),
+        pages: Math.ceil(total / limit),
         limit,
       },
     })

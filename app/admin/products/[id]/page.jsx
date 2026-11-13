@@ -47,6 +47,8 @@ import {
 import BrandImage from "@/components/brand-image"
 import ProductHistory from "@/components/admin/product-history"
 import StockAdjust from "@/components/admin/stock-adjust"
+import LiveIndicator from "@/components/admin/orders/live-indicator"
+import { useNow } from "@/hooks/use-now"
 import { useAdminProduct, useDeleteProduct, useSaveProduct } from "@/stores/adminStore"
 import { useToast } from "@/hooks/use-toast"
 import { formatNaira } from "@/lib/pricing"
@@ -91,6 +93,7 @@ export default function ProductDetailsPage() {
   const { id } = useParams()
   const router = useRouter()
   const { toast } = useToast()
+  const now = useNow(30 * 1000)
   const { data: product, isLoading, isError } = useAdminProduct(id)
   const del = useDeleteProduct()
   const save = useSaveProduct()
@@ -176,6 +179,9 @@ export default function ProductDetailsPage() {
               </Badge>
             )}
             {outOfStock && <Badge variant="destructive">Out of stock</Badge>}
+            {/* Stock and history on this page update live as orders are paid
+                and stock is adjusted elsewhere. */}
+            <LiveIndicator now={now} source="stock" />
           </div>
           <p className="text-sm text-muted-foreground">
             {product.sku || "No SKU"}

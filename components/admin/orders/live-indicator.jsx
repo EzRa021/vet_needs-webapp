@@ -4,12 +4,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import { timeAgo } from "@/lib/relative-time"
 import { useOrderLiveStore } from "@/stores/orderLiveStore"
+import { useStockLiveStore } from "@/stores/stockLiveStore"
 
 const STATES = {
   live: {
     label: "Live",
     dot: "bg-success",
-    help: "New orders and status changes appear here the moment they happen.",
+    help: "Changes appear here the moment they happen.",
   },
   connecting: {
     label: "Connecting",
@@ -24,19 +25,21 @@ const STATES = {
   reconnecting: {
     label: "Reconnecting",
     dot: "bg-earth",
-    help: "The live connection dropped. Orders still refresh every 30 seconds until it's back.",
+    help: "The live connection dropped. This page still refreshes every 30 seconds until it's back.",
   },
   offline: {
     label: "Offline",
     dot: "bg-destructive",
-    help: "No connection. Orders will refresh when you're back online.",
+    help: "No connection. This page refreshes when you're back online.",
   },
 }
 
 // The page's heartbeat: a dot that breathes while the socket is open.
-export default function LiveIndicator({ now, className }) {
-  const connection = useOrderLiveStore((s) => s.connection)
-  const lastEventAt = useOrderLiveStore((s) => s.lastEventAt)
+// source: "orders" (orders listener) or "stock" (item_history listener).
+export default function LiveIndicator({ now, className, source = "orders" }) {
+  const useStore = source === "stock" ? useStockLiveStore : useOrderLiveStore
+  const connection = useStore((s) => s.connection)
+  const lastEventAt = useStore((s) => s.lastEventAt)
   const state = STATES[connection] || STATES.connecting
   const live = connection === "live"
 

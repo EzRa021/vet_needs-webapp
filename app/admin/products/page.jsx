@@ -1,38 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import {
-  Plus,
-  Search,
-  Package,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  TriangleAlert,
-  Star,
-  X,
-  Eye,
-  Download,
-} from "lucide-react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Columns3, Download, Package, Plus, RefreshCw, Search, TriangleAlert, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import BulkActions from "@/components/admin/bulk-actions"
-import { downloadCsv } from "@/lib/csv"
+import { Card } from "@/components/ui/card"
+import { Kbd } from "@/components/ui/kbd"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Select,
   SelectContent,
@@ -43,9 +22,9 @@ import {
 } from "@/components/ui/select"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -67,121 +46,223 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import BrandImage from "@/components/brand-image"
+import BulkActions from "@/components/admin/bulk-actions"
+import LiveIndicator from "@/components/admin/orders/live-indicator"
+import AlertSettings from "@/components/admin/orders/alert-settings"
+import CatalogHealth from "@/components/admin/products/catalog-health"
+import ProductsTable, { vatText } from "@/components/admin/products/products-table"
+import { useToast } from "@/hooks/use-toast"
+import { useNow } from "@/hooks/use-now"
 import {
+  fetchAllAdminProducts,
+  useAdminProductSummary,
   useAdminProducts,
   useAdminTaxonomy,
   useDeleteProduct,
   useSaveProduct,
 } from "@/stores/adminStore"
-import { useToast } from "@/hooks/use-toast"
-import { formatNaira } from "@/lib/pricing"
+import { useStockLiveStore } from "@/stores/stockLiveStore"
+import { downloadCsv } from "@/lib/csv"
+import { readStored, writeStored } from "@/lib/local-prefs"
+import { margin, netPrice, stockLevel, STOCK_LEVEL_LABEL } from "@/lib/stock-movements"
 
-const STATUS_FILTERS = [
-  { value: "all", label: "All products" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-  { value: "featured", label: "Featured" },
-  { value: "out_of_stock", label: "Out of stock" },
+const DEFAULTS = { status: "all", search: "", category: "all", sort: "newest", page: 1, limit: 20 }
+const STATUSES = ["all", "active", "inactive", "featured", "low_stock", "out_of_stock"]
+const SORTS = [
+  { value: "newest", label: "Newest first" },
+  { value: "updated", label: "Recently updated" },
+  { value: "name_asc", label: "Name, A to Z" },
+  { value: "name_desc", label: "Name, Z to A" },
+  { value: "price_desc", label: "Price, high to low" },
+  { value: "price_asc", label: "Price, low to high" },
+  { value: "stock_asc", label: "Stock, lowest first" },
+  { value: "stock_desc", label: "Stock, highest first" },
 ]
+const PAGE_SIZES = [20, 50, 100]
+const POLL_MS = 30 * 1000
+const COLUMNS_KEY = "vn-admin-product-columns"
+const DEFAULT_COLUMNS = { category: true, margin: true, updated: true }
 
 function flatten(nodes, out = [], depth = 0) {
-  for (const n of nodes) {
+  for (const n of nodes || []) {
     out.push({ id: n.id, name: n.name, depth })
     if (n.children?.length) flatten(n.children, out, depth + 1)
   }
   return out
 }
 
-function StockCell({ item }) {
-  const stock = Number(item.stock)
-  const low = stock <= Number(item.low_stock_threshold ?? 10)
-  const unit = item.unit_type === "kg" ? " kg" : ""
-  if (stock === 0) {
-    return <Badge variant="destructive">Out of stock</Badge>
+// Filters live in the URL: a filtered view survives refresh and the back
+// button, and "everything low in Poultry" is a link you can send.
+function readFilters(params) {
+  const status = params.get("status")
+  const sort = params.get("sort")
+  const limit = Number(params.get("limit"))
+  return {
+    status: STATUSES.includes(status) ? status : "all",
+    search: (params.get("search") || "").slice(0, 100),
+    category: params.get("category") || "all",
+    sort: SORTS.some((s) => s.value === sort) ? sort : "newest",
+    page: Math.max(Number(params.get("page")) || 1, 1),
+    limit: PAGE_SIZES.includes(limit) ? limit : DEFAULTS.limit,
   }
-  return (
-    <span className={`tabular-nums ${low ? "font-semibold text-destructive" : ""}`}>
-      {stock}
-      {unit}
-      {low && <span className="ml-1 text-xs font-normal">low</span>}
-    </span>
-  )
 }
 
-export default function AdminProductsPage() {
-  const { toast } = useToast()
-  const [filters, setFilters] = useState({
-    search: "",
-    category: "all",
-    status: "all",
-    page: 1,
-    limit: 20,
-  })
-  const [searchInput, setSearchInput] = useState("")
-  const [pendingDelete, setPendingDelete] = useState(null)
+const CSV_COLUMNS = [
+  { key: "sku", label: "SKU" },
+  { key: "name", label: "Name" },
+  { key: "brand", label: "Brand" },
+  { key: "category", label: "Category", format: (c) => c?.name || "" },
+  { key: "price", label: "Price (NGN)" },
+  { key: "compare_at_price", label: "Compare at (NGN)" },
+  { key: "cost_price", label: "Cost (NGN)" },
+  { key: "net", label: "Price without VAT (NGN)", format: (_, r) => netPrice(r).toFixed(2) },
+  { key: "margin", label: "Margin %", format: (_, r) => (margin(r) ? margin(r).percent.toFixed(1) : "") },
+  { key: "stock", label: "Stock" },
+  { key: "unit_type", label: "Unit" },
+  { key: "low_stock_threshold", label: "Reorder at" },
+  { key: "level", label: "Stock status", format: (_, r) => STOCK_LEVEL_LABEL[stockLevel(r)] },
+  { key: "vat", label: "VAT", format: (_, r) => vatText(r) },
+  { key: "is_active", label: "In shop", format: (v) => (v ? "On sale" : "Hidden") },
+  { key: "is_featured", label: "Featured", format: (v) => (v ? "Yes" : "") },
+]
 
-  const { data, isLoading, isError } = useAdminProducts(filters)
+function AdminProductsPageContent() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
+  const now = useNow(15 * 1000)
+
+  const filters = useMemo(() => readFilters(searchParams), [searchParams])
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+  const pushedSearch = useRef(filters.search)
+  const searchRef = useRef(null)
+
+  const [searchInput, setSearchInput] = useState(filters.search)
+  const [selected, setSelected] = useState(() => new Set())
+  const [busyIds, setBusyIds] = useState(() => new Set())
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [exporting, setExporting] = useState(false)
+  const [columns, setColumns] = useState(DEFAULT_COLUMNS)
+
+  const connection = useStockLiveStore((s) => s.connection)
+  const fresh = useStockLiveStore((s) => s.fresh)
+  const pollMs = connection === "live" ? false : POLL_MS
+
+  const listFilters = useMemo(
+    () => ({ ...filters }),
+    [filters]
+  )
+  const summaryFilters = useMemo(
+    () => ({ search: filters.search, category: filters.category }),
+    [filters.search, filters.category]
+  )
+  const { data, isLoading, isError, isFetching, refetch } = useAdminProducts(listFilters, { pollMs })
+  const summary = useAdminProductSummary(summaryFilters, { pollMs })
   const { data: tree } = useAdminTaxonomy()
-  const del = useDeleteProduct()
   const save = useSaveProduct()
+  const del = useDeleteProduct()
 
   const items = data?.data || []
-  const pagination = data?.pagination || { total: 0, page: 1, pages: 0 }
-  const categories = flatten(tree || [])
+  const pagination = data?.pagination || { total: 0, page: 1, pages: 0, limit: filters.limit }
+  const categories = useMemo(() => flatten(tree), [tree])
   const hasFilters = filters.search || filters.category !== "all" || filters.status !== "all"
 
-  // Selection is scoped to the current page and cleared whenever the list
-  // changes underneath it. Carrying a selection across a filter change means
-  // acting on rows you can no longer see — which is how a bulk edit hits
-  // products nobody intended.
-  const [selected, setSelected] = useState(() => new Set())
-  const visibleIds = items.map((i) => i.id)
-  const selectedOnPage = visibleIds.filter((id) => selected.has(id))
-  const allSelected = visibleIds.length > 0 && selectedOnPage.length === visibleIds.length
+  useEffect(() => {
+    setColumns(readStored(COLUMNS_KEY, DEFAULT_COLUMNS))
+  }, [])
 
-  const clearSelection = () => setSelected(new Set())
+  const setFilters = (patch) => {
+    const next = { ...filtersRef.current, ...patch }
+    if (!("page" in patch)) next.page = 1
+    const params = new URLSearchParams()
+    for (const [k, v] of Object.entries(next)) {
+      if (v !== DEFAULTS[k] && v !== "" && v != null) params.set(k, String(v))
+    }
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
 
-  const toggleAll = () =>
-    setSelected(allSelected ? new Set() : new Set(visibleIds))
+  // Search as you type, debounced.
+  useEffect(() => {
+    const value = searchInput.trim()
+    if (value === filtersRef.current.search) return
+    const t = setTimeout(() => {
+      pushedSearch.current = value
+      setFilters({ search: value })
+    }, 350)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput])
 
-  const toggleOne = (id) =>
-    setSelected((prev) => {
+  // Follow the URL when it changes underneath the box (back button), but not
+  // when it's this box's own search coming back.
+  useEffect(() => {
+    if (filters.search === pushedSearch.current) return
+    pushedSearch.current = filters.search
+    setSearchInput(filters.search)
+  }, [filters.search])
+
+  // Selection is scoped to the rows on screen and dropped whenever they change:
+  // carrying it across a filter means acting on products nobody can see.
+  useEffect(() => {
+    setSelected(new Set())
+  }, [filters.status, filters.search, filters.category, filters.sort, filters.page, filters.limit])
+
+  // "/" jumps to search.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return
+      const tag = document.activeElement?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return
+      e.preventDefault()
+      searchRef.current?.focus()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  const markBusy = (id, on) =>
+    setBusyIds((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      on ? next.add(id) : next.delete(id)
       return next
     })
 
-  // Any change to what's listed drops the selection.
-  const updateFilters = (patch) => {
-    clearSelection()
-    setFilters((f) => ({ ...f, ...patch }))
-  }
-
-  const selectedItems = items.filter((i) => selected.has(i.id))
-
-  const update = (patch) => {
-    clearSelection()
-    setFilters((f) => ({ ...f, ...patch, page: 1 }))
-  }
-
-  const toggleActive = async (item) => {
+  const patchProduct = async (item, patch, success) => {
+    markBusy(item.id, true)
     try {
-      await save.mutateAsync({ id: item.id, is_active: !item.is_active })
-      toast({
-        title: item.is_active ? "Product hidden" : "Product is live",
-        description: `“${item.name}” is now ${item.is_active ? "inactive" : "active"}.`,
-      })
+      await save.mutateAsync({ id: item.id, ...patch })
+      toast(success)
     } catch (err) {
-      toast({ title: "Couldn't update", description: err.message, variant: "destructive" })
+      toast({ title: `Couldn't update ${item.name}`, description: err.message, variant: "destructive" })
+    } finally {
+      markBusy(item.id, false)
     }
   }
+
+  const toggleActive = (item) =>
+    patchProduct(item, { is_active: !item.is_active }, {
+      title: item.is_active ? "Hidden from the shop" : "On sale",
+      description: item.is_active
+        ? `${item.name} no longer shows to shoppers.`
+        : `${item.name} is now visible in the shop.`,
+    })
+
+  const toggleFeatured = (item) =>
+    patchProduct(item, { is_featured: !item.is_featured }, {
+      title: item.is_featured ? "Removed from featured" : "Featured",
+      description: item.is_featured
+        ? `${item.name} is off the home page.`
+        : `${item.name} now shows on the home page.`,
+    })
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
     try {
       await del.mutateAsync(pendingDelete.id)
-      toast({ title: "Product deleted", description: `“${pendingDelete.name}” has been removed.` })
+      toast({ title: "Product deleted", description: `${pendingDelete.name} has been removed.` })
     } catch (err) {
       toast({ title: "Can't delete this product", description: err.message, variant: "destructive" })
     } finally {
@@ -189,49 +270,77 @@ export default function AdminProductsPage() {
     }
   }
 
+  const exportCsv = async () => {
+    setExporting(true)
+    try {
+      const rows = await fetchAllAdminProducts({ ...filters, page: undefined, limit: undefined })
+      downloadCsv(`vetneeds-products-${new Date().toISOString().slice(0, 10)}.csv`, rows, CSV_COLUMNS)
+      toast({ title: `Exported ${rows.length} product${rows.length === 1 ? "" : "s"}` })
+    } catch (err) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const copySku = (item) => {
+    navigator.clipboard?.writeText(item.sku)
+    toast({ title: `Copied ${item.sku}` })
+  }
+
+  const setColumn = (key, on) => {
+    const next = { ...columns, [key]: on }
+    setColumns(next)
+    writeStored(COLUMNS_KEY, next)
+  }
+
+  const reset = () => {
+    setSearchInput("")
+    setFilters({ status: "all", search: "", category: "all" })
+  }
+
+  const selectedItems = items.filter((i) => selected.has(i.id))
+  const selectedIds = selectedItems.map((i) => i.id)
+  const from = pagination.total ? (pagination.page - 1) * pagination.limit + 1 : 0
+  const to = Math.min(pagination.page * pagination.limit, pagination.total)
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-xl font-bold">Products</h1>
-          <p className="text-sm text-muted-foreground">
-            {pagination.total} item{pagination.total === 1 ? "" : "s"} in your catalog
-          </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-xl font-bold">Products</h1>
+            <LiveIndicator now={now} source="stock" />
+          </div>
+          {summary.isLoading ? (
+            <Skeleton className="h-4 w-60" />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {(summary.data?.counts?.all ?? pagination.total).toLocaleString("en-NG")} in the catalogue.
+              Stock updates here as orders are paid and stock is adjusted.
+            </p>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
-            variant="outline"
-            disabled={items.length === 0}
-            onClick={() =>
-              downloadCsv(
-                `vetneeds-products-${new Date().toISOString().slice(0, 10)}.csv`,
-                items,
-                [
-                  { key: "sku", label: "SKU" },
-                  { key: "name", label: "Name" },
-                  { key: "brand", label: "Brand" },
-                  { key: "category", label: "Category", format: (c) => c?.name || "" },
-                  { key: "price", label: "Price (NGN)" },
-                  { key: "compare_at_price", label: "Compare at" },
-                  { key: "cost_price", label: "Cost" },
-                  { key: "stock", label: "Stock" },
-                  { key: "unit_type", label: "Unit" },
-                  { key: "vat_enabled", label: "VAT", format: (v) => (v ? "Yes" : "Exempt") },
-                  { key: "vat_rate", label: "VAT %" },
-                  {
-                    key: "vat_inclusive",
-                    label: "VAT treatment",
-                    format: (v) => (v ? "Inclusive" : "Added"),
-                  },
-                  { key: "is_active", label: "Status", format: (v) => (v ? "Live" : "Hidden") },
-                ]
-              )
-            }
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              refetch()
+              summary.refetch()
+            }}
+            disabled={isFetching}
+            aria-label="Refresh products"
           >
-            <Download data-icon="inline-start" />
-            Export
+            <RefreshCw data-icon="inline-start" className={isFetching ? "motion-safe:animate-spin" : undefined} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button asChild>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={exporting || !pagination.total}>
+            {exporting ? <Spinner data-icon="inline-start" /> : <Download data-icon="inline-start" />}
+            Export CSV
+          </Button>
+          <AlertSettings />
+          <Button size="sm" asChild>
             <Link href="/admin/products/new">
               <Plus data-icon="inline-start" />
               New product
@@ -240,46 +349,52 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      <BulkActions
-        ids={selectedOnPage}
-        selectedItems={selectedItems}
-        onClear={clearSelection}
+      <CatalogHealth
+        summary={summary.data}
+        active={filters.status}
+        onSelect={(status) => setFilters({ status })}
+        onUncategorised={() => setFilters({ category: "none", status: "all" })}
+        loading={summary.isLoading}
       />
+
+      <BulkActions ids={selectedIds} selectedItems={selectedItems} onClear={() => setSelected(new Set())} />
 
       {isError ? (
         <Alert variant="destructive">
           <TriangleAlert />
-          <AlertTitle>Couldn&apos;t load products</AlertTitle>
-          <AlertDescription>Refresh the page, or check migrations 002 and 003.</AlertDescription>
+          <AlertTitle>Products didn&apos;t load</AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-3">
+            Check your connection and try again. If it keeps failing, confirm migrations 002 and 003 have run.
+            <Button size="sm" variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </AlertDescription>
         </Alert>
       ) : (
-        <Card className="gap-0 py-0">
-          {/* Toolbar */}
+        <Card className="gap-0 overflow-hidden py-0">
           <div className="flex flex-wrap items-center gap-2 border-b p-3">
-            <form
-              className="relative min-w-[200px] flex-1"
-              onSubmit={(e) => {
-                e.preventDefault()
-                update({ search: searchInput })
-              }}
-            >
+            <div className="relative min-w-[220px] flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                ref={searchRef}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search name, SKU or brand…"
-                className="pl-9"
+                onKeyDown={(e) => e.key === "Escape" && setSearchInput("")}
+                placeholder="Search name, SKU or brand"
+                className="pl-9 pr-10"
                 aria-label="Search products"
               />
-            </form>
+              <Kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 sm:inline-flex">/</Kbd>
+            </div>
 
-            <Select value={filters.category} onValueChange={(v) => update({ category: v })}>
-              <SelectTrigger className="w-[180px]">
+            <Select value={filters.category} onValueChange={(category) => setFilters({ category })}>
+              <SelectTrigger className="w-[190px]" aria-label="Category">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectItem value="all">All categories</SelectItem>
+                  <SelectItem value="none">Uncategorised</SelectItem>
                   {categories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {" ".repeat(c.depth * 3)}
@@ -290,13 +405,13 @@ export default function AdminProductsPage() {
               </SelectContent>
             </Select>
 
-            <Select value={filters.status} onValueChange={(v) => update({ status: v })}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
+            <Select value={filters.sort} onValueChange={(sort) => setFilters({ sort })}>
+              <SelectTrigger className="w-[190px]" aria-label="Sort">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {STATUS_FILTERS.map((s) => (
+                  {SORTS.map((s) => (
                     <SelectItem key={s.value} value={s.value}>
                       {s.label}
                     </SelectItem>
@@ -305,216 +420,132 @@ export default function AdminProductsPage() {
               </SelectContent>
             </Select>
 
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-10">
+                  <Columns3 data-icon="inline-start" />
+                  Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Show columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem checked={columns.category} onCheckedChange={(v) => setColumn("category", v)}>
+                  Category
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={columns.margin} onCheckedChange={(v) => setColumn("margin", v)}>
+                  Margin
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={columns.updated} onCheckedChange={(v) => setColumn("updated", v)}>
+                  Updated
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {hasFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchInput("")
-                  setFilters({ search: "", category: "all", status: "all", page: 1, limit: 20 })
-                }}
-              >
+              <Button variant="ghost" size="sm" className="h-10" onClick={reset}>
                 <X data-icon="inline-start" />
-                Clear
+                Clear filters
               </Button>
             )}
           </div>
 
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex flex-col gap-2 p-3">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            ) : items.length === 0 ? (
-              <Empty className="py-12">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <Package />
-                  </EmptyMedia>
-                  <EmptyTitle>
-                    {hasFilters ? "No products match those filters" : "No products yet"}
-                  </EmptyTitle>
-                  <EmptyDescription>
-                    {hasFilters
-                      ? "Try a different search or clear the filters."
-                      : "Add your first product to start selling."}
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  {hasFilters ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchInput("")
-                        setFilters({ search: "", category: "all", status: "all", page: 1, limit: 20 })
-                      }}
-                    >
-                      Clear filters
-                    </Button>
-                  ) : (
-                    <Button asChild>
-                      <Link href="/admin/products/new">
-                        <Plus data-icon="inline-start" />
-                        New product
-                      </Link>
-                    </Button>
-                  )}
-                </EmptyContent>
-              </Empty>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          checked={allSelected}
-                          onCheckedChange={toggleAll}
-                          // "Select all" that silently means "all 20 on this
-                          // page" is how people bulk-edit things they never saw.
-                          aria-label={`Select all ${items.length} products on this page`}
-                        />
-                      </TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="hidden md:table-cell">Category</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-10" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        data-state={selected.has(item.id) ? "selected" : undefined}
-                        className={!item.is_active ? "opacity-60" : undefined}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selected.has(item.id)}
-                            onCheckedChange={() => toggleOne(item.id)}
-                            aria-label={`Select ${item.name}`}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="relative size-10 shrink-0 overflow-hidden rounded-md border bg-muted">
-                              <BrandImage
-                                src={item.image_url}
-                                alt={item.name}
-                                fill
-                                sizes="40px"
-                                className="object-cover"
-                              />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <Link
-                                  href={`/admin/products/${item.id}`}
-                                  className="truncate font-medium hover:text-primary hover:underline"
-                                >
-                                  {item.name}
-                                </Link>
-                                {item.is_featured && (
-                                  <Star className="size-3.5 shrink-0 fill-earth text-earth" />
-                                )}
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {item.sku || "No SKU"}
-                                {item.brand ? ` · ${item.brand}` : ""}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden text-muted-foreground md:table-cell">
-                          {item.category?.name || "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="font-medium tabular-nums">
-                              {formatNaira(item.price)}
-                            </span>
-                            {item.unit_type === "kg" && (
-                              <span className="text-xs text-muted-foreground">per kg</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <StockCell item={item} />
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={item.is_active ? "secondary" : "outline"}>
-                            {item.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-8">
-                                <MoreHorizontal />
-                                <span className="sr-only">Actions for {item.name}</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuGroup>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/products/${item.id}`}>
-                                    <Eye />
-                                    View details
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/products/${item.id}/edit`}>
-                                    <Pencil />
-                                    Edit
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toggleActive(item)}>
-                                  <Package />
-                                  {item.is_active ? "Set inactive" : "Set active"}
-                                </DropdownMenuItem>
-                              </DropdownMenuGroup>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => setPendingDelete(item)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
+          {isLoading ? (
+            <div className="flex flex-col gap-2 p-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <Empty className="py-14">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Package />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {hasFilters
+                    ? filters.status === "low_stock" || filters.status === "out_of_stock"
+                      ? "Nothing needs restocking here"
+                      : "No products match these filters"
+                    : "No products yet"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {hasFilters
+                    ? "Try a different search, category or status."
+                    : "Add your first product to start selling."}
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                {hasFilters ? (
+                  <Button variant="outline" onClick={reset}>
+                    Clear filters
+                  </Button>
+                ) : (
+                  <Button asChild>
+                    <Link href="/admin/products/new">
+                      <Plus data-icon="inline-start" />
+                      New product
+                    </Link>
+                  </Button>
+                )}
+              </EmptyContent>
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto">
+              <ProductsTable
+                items={items}
+                now={now}
+                fresh={fresh}
+                sort={filters.sort}
+                onSort={(sort) => setFilters({ sort })}
+                columns={columns}
+                selected={selected}
+                onSelectedChange={setSelected}
+                onToggleActive={toggleActive}
+                onToggleFeatured={toggleFeatured}
+                onDelete={setPendingDelete}
+                onCopy={copySku}
+                busyIds={busyIds}
+              />
+            </div>
+          )}
 
-          {pagination.pages > 1 && (
-            <div className="flex items-center justify-between border-t p-3">
-              <span className="text-sm text-muted-foreground">
-                Page {pagination.page} of {pagination.pages}
+          {pagination.total > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t p-3">
+              <span className="text-sm tabular-nums text-muted-foreground">
+                Showing {from}–{to} of {pagination.total.toLocaleString("en-NG")}
               </span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={String(filters.limit)} onValueChange={(v) => setFilters({ limit: Number(v) })}>
+                  <SelectTrigger className="h-9 w-[124px]" aria-label="Rows per page">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {PAGE_SIZES.map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n} per page
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}
+                  disabled={pagination.page <= 1}
+                  onClick={() => setFilters({ page: pagination.page - 1 })}
                 >
                   Previous
                 </Button>
+                <span className="px-1 text-sm tabular-nums text-muted-foreground">
+                  {pagination.page} / {Math.max(pagination.pages, 1)}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={pagination.page === pagination.pages}
-                  onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}
+                  disabled={pagination.page >= pagination.pages}
+                  onClick={() => setFilters({ page: pagination.page + 1 })}
                 >
                   Next
                 </Button>
@@ -527,23 +558,38 @@ export default function AdminProductsPage() {
       <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete “{pendingDelete?.name}”?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {pendingDelete?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This can&apos;t be undone. Products that appear in past orders are
-              protected — set them inactive instead so order history stays intact.
+              This can&apos;t be undone. Products that appear in past orders are protected: hide them from
+              the shop instead, so order history stays intact.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Keep product</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Delete product
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+// useSearchParams needs a Suspense boundary to build in Next.js.
+export default function AdminProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <Spinner />
+        </div>
+      }
+    >
+      <AdminProductsPageContent />
+    </Suspense>
   )
 }

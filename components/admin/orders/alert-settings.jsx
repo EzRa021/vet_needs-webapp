@@ -77,8 +77,8 @@ export default function AlertSettings() {
     playChime("payment", prefs.volume)
     if (prefs.desktop && permission === "granted") {
       showDesktopNotification({
-        title: "Order alerts are on",
-        body: "This is how a new order or payment will look.",
+        title: "Alerts are on",
+        body: "This is how a new order, payment or stock warning will look.",
         tag: "vn-test-alert",
         url: "/admin/orders",
       })
@@ -88,7 +88,7 @@ export default function AlertSettings() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" aria-label="Order alert settings">
+        <Button variant="outline" size="sm" aria-label="Alert settings">
           <TriggerIcon data-icon="inline-start" />
           Alerts
           {muted && <span className="text-muted-foreground">off</span>}
@@ -97,7 +97,7 @@ export default function AlertSettings() {
       <PopoverContent align="end" className="w-80">
         <div className="flex flex-col gap-4">
           <div>
-            <p className="font-display text-sm font-semibold">Order alerts</p>
+            <p className="font-display text-sm font-semibold">Alerts</p>
             <p className="text-xs text-muted-foreground">
               Saved for this browser. Each alert plays once, however many admin tabs are open.
             </p>
@@ -151,6 +151,13 @@ export default function AlertSettings() {
               description="When Paystack confirms a payment. A different, brighter chime."
               checked={prefs.onPayment}
               onCheckedChange={(v) => setPrefs({ onPayment: v })}
+            />
+            <ToggleRow
+              id="alert-stock"
+              label="Low and out of stock"
+              description="When a sale or adjustment takes a product to its reorder point, or to zero. A lower, falling chime."
+              checked={prefs.onLowStock}
+              onCheckedChange={(v) => setPrefs({ onLowStock: v })}
             />
           </FieldGroup>
 

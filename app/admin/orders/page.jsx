@@ -61,6 +61,7 @@ import {
 } from "@/stores/adminStore"
 import { useOrderLiveStore } from "@/stores/orderLiveStore"
 import { downloadCsv } from "@/lib/csv"
+import { readStored, writeStored } from "@/lib/local-prefs"
 import { formatNaira } from "@/lib/pricing"
 import { canTransition, ORDER_STATUSES, orderRef, parseShippingAddress, statusMeta } from "@/lib/order-status"
 
@@ -79,24 +80,6 @@ const POLL_MS = 30 * 1000
 const COLUMNS_KEY = "vn-admin-order-columns"
 const BANNER_KEY = "vn-admin-order-alerts-banner"
 const DEFAULT_COLUMNS = { items: true, delivery: true, payment: true }
-
-// localStorage can be unavailable (private mode); these are conveniences, so
-// failing quietly to the defaults is the right behaviour.
-const readStored = (key, fallback) => {
-  try {
-    const raw = window.localStorage.getItem(key)
-    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback
-  } catch {
-    return fallback
-  }
-}
-const writeStored = (key, value) => {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* ignore */
-  }
-}
 
 // Filters live in the URL, so a filtered view survives a refresh, the back
 // button, and being pasted to a colleague.
