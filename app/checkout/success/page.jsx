@@ -16,6 +16,7 @@ import { useCartStore } from "@/stores/cartStore"
 import { useCheckoutStore } from "@/stores/checkoutStore"
 import CheckoutSteps from "@/components/checkout-steps"
 import FulfilmentTimeline from "@/components/fulfilment-timeline"
+import CustomerOrderRealtime from "@/components/customer-order-realtime"
 import { createClient } from "@/lib/supabase/client"
 import { formatNaira } from "@/lib/pricing"
 import { statusMeta, isTerminal } from "@/lib/order-status"
@@ -31,6 +32,11 @@ function useOrder(orderId, guestToken) {
   return useQuery({
     queryKey: ["order", orderId, guestToken],
     enabled: !!orderId,
+    // Signed-in shoppers get live updates (CustomerOrderRealtime below). A
+    // guest has no session to subscribe with, so while the payment is still
+    // being confirmed, check again every few seconds instead.
+    refetchInterval: (query) =>
+      guestToken && query.state.data?.status === "pending" ? 5000 : false,
     queryFn: async () => {
       const supabase = createClient()
 
@@ -159,6 +165,7 @@ export default function OrderSuccessPage() {
 
   return (
     <Shell>
+      {!guestToken && <CustomerOrderRealtime />}
       <CheckoutSteps current={4} />
 
       <div className="mb-8 text-center">

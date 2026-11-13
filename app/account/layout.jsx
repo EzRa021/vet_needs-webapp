@@ -12,6 +12,7 @@ import { useUser, useLogout } from "@/stores/authStore"
 import { getWebmail } from "@/lib/email-provider"
 import { createClient } from "@/lib/supabase/client"
 import AccountNav from "@/components/account-nav"
+import CustomerOrderRealtime from "@/components/customer-order-realtime"
 import { siteUrlTo } from '@/lib/site-url'
 
 // Gate for every /account page: signed in AND email confirmed.
@@ -113,6 +114,9 @@ export default function AccountLayout({ children }) {
 
   return (
     <div className="container px-4 py-8 md:px-6 md:py-10">
+      {/* Live order status for every account page: the orders list and an
+          order's page update the moment staff move it on. */}
+      <CustomerOrderRealtime />
       <header className="mb-1">
         <h1 className="font-display text-2xl font-bold">My account</h1>
         <p className="text-sm text-muted-foreground">

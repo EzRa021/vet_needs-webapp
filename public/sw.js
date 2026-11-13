@@ -45,3 +45,18 @@ self.addEventListener('fetch', (event) => {
   // unreachable do we show the offline fallback.
   event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)))
 })
+
+// Staff order alerts (lib/order-alerts.js). On Android, Chrome only shows
+// notifications through the service worker, so the click lands here: focus an
+// open admin tab on the order if there is one, otherwise open it.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = new URL(event.notification.data?.url || '/admin/orders', self.location.origin).href
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const existing = windows.find((w) => new URL(w.url).pathname.startsWith('/admin'))
+      if (existing) return existing.focus().then((w) => w?.navigate?.(target))
+      return self.clients.openWindow(target)
+    })
+  )
+})

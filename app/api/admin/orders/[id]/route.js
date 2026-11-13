@@ -3,6 +3,7 @@ import { getStaffUser } from '@/lib/auth/admin'
 import { parseAdminBody, OrderUpdateSchema } from '@/lib/validation/admin'
 import { sendEmail } from '@/lib/email/send'
 import { orderShippedEmail, orderDeliveredEmail } from '@/lib/email/templates'
+import { ALLOWED_TRANSITIONS, SETTABLE_STATUSES } from '@/lib/order-status'
 
 // Statuses worth emailing about. 'processing' isn't — "we're packing it" is
 // noise; 'canceled'/'refunded' are conversations staff are already having.
@@ -11,7 +12,8 @@ const EMAIL_ON_STATUS = {
   delivered: orderDeliveredEmail,
 }
 
-// Statuses staff may set by hand.
+// Statuses staff may set by hand, and from where — shared with the admin UI
+// via lib/order-status.js so the table never offers a move this route refuses.
 //
 // 'paid' is absent: only the Paystack webhook / verify flow may mark an order
 // paid (mark_order_paid), because that also decrements stock atomically.
@@ -22,23 +24,12 @@ const EMAIL_ON_STATUS = {
 // the customer would be told they'd been repaid, and no money would move.
 // A refund now goes through /admin/refunds → the Paystack refund API → the
 // refund.processed webhook → apply_refund_result() (016), which is the only
-// thing that may write 'refunded'. The status records that money moved; it does
-// not express an intention to move it.
-const SETTABLE = ['processing', 'shipped', 'delivered', 'canceled']
-
-// An unpaid order can only be cancelled — you can't fulfil something
-// that was never paid for.
+// thing that may write 'refunded'.
 //
-// 'refunded' appears in no list here: it isn't reachable by hand at all.
-const ALLOWED_FROM = {
-  pending: ['canceled'],
-  paid: ['processing', 'shipped', 'delivered', 'canceled'],
-  processing: ['shipped', 'delivered', 'canceled'],
-  shipped: ['delivered'],
-  delivered: [],
-  canceled: [],
-  refunded: [],
-}
+// An unpaid order can only be cancelled — you can't fulfil something that was
+// never paid for.
+const SETTABLE = SETTABLE_STATUSES
+const ALLOWED_FROM = ALLOWED_TRANSITIONS
 
 // GET /api/admin/orders/[id]
 export async function GET(request, { params }) {

@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge"
 import { ADMIN_NAV, canSee } from "@/components/admin/admin-nav"
 import { useProfile, useUnreadMessageCount } from "@/stores/adminStore"
 import { useLogout } from "@/stores/authStore"
+import { useOrderLiveStore } from "@/stores/orderLiveStore"
 import BrandLogo from "@/components/brand-logo"
 
 const THEME_LABEL = { light: "Light", dark: "Dark", system: "System" }
@@ -45,6 +46,7 @@ export default function AdminSidebar() {
   const logout = useLogout()
   const role = profile?.role
   const { data: unreadMessages = 0 } = useUnreadMessageCount()
+  const unseenOrders = useOrderLiveStore((s) => s.unseen)
 
   // The sidebar is collapsible to icons, so a dropdown is awkward here —
   // clicking cycles light → dark → system instead.
@@ -137,6 +139,16 @@ export default function AdminSidebar() {
                         {item.badge === "messages" && unreadMessages > 0 && (
                           <SidebarMenuBadge className="bg-primary text-primary-foreground">
                             {unreadMessages > 99 ? "99+" : unreadMessages}
+                          </SidebarMenuBadge>
+                        )}
+                        {/* New orders that arrived live since staff last opened
+                            the Orders page. Cleared by visiting it. */}
+                        {item.badge === "orders" && unseenOrders > 0 && (
+                          <SidebarMenuBadge
+                            className="bg-primary text-primary-foreground"
+                            aria-label={`${unseenOrders} new order${unseenOrders === 1 ? "" : "s"}`}
+                          >
+                            {unseenOrders > 99 ? "99+" : unseenOrders}
                           </SidebarMenuBadge>
                         )}
                       </SidebarMenuItem>

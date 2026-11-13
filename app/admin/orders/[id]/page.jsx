@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,6 +33,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import BrandImage from "@/components/brand-image"
+import LiveIndicator from "@/components/admin/orders/live-indicator"
+import { OrderStatusBadge } from "@/components/order-status-badge"
+import { useNow } from "@/hooks/use-now"
+import { timeAgo, fullDateTime } from "@/lib/relative-time"
 import { useAdminOrder, useUpdateOrder } from "@/stores/adminStore"
 import { useToast } from "@/hooks/use-toast"
 import { formatNaira } from "@/lib/pricing"
@@ -109,15 +112,31 @@ export default function OrderDetailPage() {
   const { data: order, isLoading, isError } = useAdminOrder(id)
   const update = useUpdateOrder()
 
+  const now = useNow(30 * 1000)
+
   const [tracking, setTracking] = useState("")
   const [notes, setNotes] = useState("")
   const [nextStatus, setNextStatus] = useState("")
 
+  // The order refreshes live (another staff member, a payment landing), so
+  // syncing the form must not wipe what someone is halfway through typing.
+  // A field only follows the server while it still holds the last server value.
+  const serverValues = useRef({ id: null })
   useEffect(() => {
     if (!order) return
-    setTracking(order.tracking_number || "")
-    setNotes(order.admin_notes || "")
-    setNextStatus("")
+    const prev = serverValues.current
+    const serverTracking = order.tracking_number || ""
+    const serverNotes = order.admin_notes || ""
+    if (prev.id !== order.id) {
+      setTracking(serverTracking)
+      setNotes(serverNotes)
+      setNextStatus("")
+    } else {
+      setTracking((current) => (current === prev.tracking ? serverTracking : current))
+      setNotes((current) => (current === prev.notes ? serverNotes : current))
+      if (order.status !== prev.status) setNextStatus("")
+    }
+    serverValues.current = { id: order.id, tracking: serverTracking, notes: serverNotes, status: order.status }
   }, [order])
 
   if (isLoading) {
@@ -173,7 +192,13 @@ export default function OrderDetailPage() {
             <h1 className="font-display text-xl font-bold tabular-nums">
               Order #{order.id.slice(0, 8).toUpperCase()}
             </h1>
-            <Badge variant={meta.variant}>{meta.label}</Badge>
+            {/* Re-keyed on status so a live change visibly lands. */}
+            <OrderStatusBadge
+              key={order.status}
+              status={order.status}
+              className="motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95"
+            />
+            <LiveIndicator now={now} />
           </div>
           <p className="text-sm text-muted-foreground">
             Placed{" "}
@@ -184,6 +209,9 @@ export default function OrderDetailPage() {
               hour: "2-digit",
               minute: "2-digit",
             })}
+            {order.updated_at && (
+              <span title={fullDateTime(order.updated_at)}>. Last changed {timeAgo(order.updated_at, now)}.</span>
+            )}
           </p>
         </div>
 

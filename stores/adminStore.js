@@ -215,23 +215,58 @@ export const useDeleteProduct = () => {
 }
 
 // ---------- Orders ----------
-export const useAdminOrders = (filters) =>
+const orderParams = (filters) => {
+  const params = new URLSearchParams()
+  Object.entries(filters || {}).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== '' && v !== 'all') {
+      params.append(k, String(v))
+    }
+  })
+  return params.toString()
+}
+
+// `pollMs` is the fallback for when the live connection is down (or migration
+// 024 hasn't been run): the list still refreshes on its own, just not instantly.
+export const useAdminOrders = (filters, { pollMs = false } = {}) =>
   useQuery({
     queryKey: ['admin', 'orders', filters],
     queryFn: async () => {
-      const params = new URLSearchParams()
-      Object.entries(filters || {}).forEach(([k, v]) => {
-        if (v !== null && v !== undefined && v !== '' && v !== 'all') {
-          params.append(k, String(v))
-        }
-      })
-      const res = await fetch(`/api/admin/orders?${params.toString()}`)
+      const res = await fetch(`/api/admin/orders?${orderParams(filters)}`)
       if (!res.ok) throw new Error('Failed to load orders')
       return res.json()
     },
     placeholderData: (prev) => prev,
     staleTime: 15 * 1000,
+    refetchInterval: pollMs,
   })
+
+// Pipeline counts + today's figures. Keyed under ['admin', 'orders'] so the
+// realtime layer's one invalidation refreshes the table and the counts together.
+export const useAdminOrderSummary = (filters, { pollMs = false } = {}) =>
+  useQuery({
+    queryKey: ['admin', 'orders', 'summary', filters],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/orders/summary?${orderParams(filters)}`)
+      if (!res.ok) throw new Error('Failed to load order summary')
+      return (await res.json()).data
+    },
+    placeholderData: (prev) => prev,
+    staleTime: 15 * 1000,
+    refetchInterval: pollMs,
+  })
+
+// Fetch every page of a filtered list (capped) for CSV export.
+export async function fetchAllAdminOrders(filters, { max = 1000 } = {}) {
+  const rows = []
+  for (let page = 1; rows.length < max; page++) {
+    const res = await fetch(`/api/admin/orders?${orderParams({ ...filters, page, limit: 100 })}`)
+    if (!res.ok) throw new Error('Failed to export orders')
+    const json = await res.json()
+    rows.push(...(json.data || []))
+    if (page >= (json.pagination?.pages || 0)) break
+  }
+  return rows.slice(0, max)
+}
 
 export const useAdminOrder = (id) =>
   useQuery({
@@ -759,6 +794,44 @@ export const useUpdateOrder = () => {
       qc.invalidateQueries({ queryKey: ['admin', 'order', vars.id] })
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
       qc.invalidateQueries({ queryKey: ['my-orders'] })
+    },
+  })
+}
+
+// Same PATCH as useUpdateOrder, once per order. The server checks every
+// transition itself, so a mixed selection partly succeeds rather than failing
+// as a whole — the result says which ones didn't move and why.
+export const useBulkUpdateOrders = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ ids, status }) => {
+      const update = async (id) => {
+        const res = await fetch(`/api/admin/orders/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json.error || 'Failed to update order')
+        return id
+      }
+      // A few at a time: "shipped"/"delivered" each send the customer an
+      // email, and a hundred at once would hammer the mail server.
+      const results = []
+      for (let i = 0; i < ids.length; i += 5) {
+        results.push(...(await Promise.allSettled(ids.slice(i, i + 5).map(update))))
+      }
+      return {
+        updated: results.filter((r) => r.status === 'fulfilled').map((r) => r.value),
+        failed: results
+          .map((r, i) => (r.status === 'rejected' ? { id: ids[i], error: r.reason?.message } : null))
+          .filter(Boolean),
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'orders'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'order'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
     },
   })
 }

@@ -13,7 +13,6 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -31,6 +30,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import FulfilmentTimeline from "@/components/fulfilment-timeline"
+import { OrderStatusBadge } from "@/components/order-status-badge"
+import { CustomerLiveChip } from "@/components/customer-order-realtime"
+import { useNow } from "@/hooks/use-now"
+import { timeAgo, fullDateTime } from "@/lib/relative-time"
 import RefundRequest from "@/components/refund-request"
 import { createClient } from "@/lib/supabase/client"
 import { formatNaira } from "@/lib/pricing"
@@ -57,7 +60,7 @@ const useMyOrder = (id) =>
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, created_at, paid_at, status, total_amount, subtotal, shipping_fee, tax_amount, discount_amount, coupon_code, order_items, shipping_address, tracking_number, notes, payment_reference"
+          "id, created_at, updated_at, paid_at, status, total_amount, subtotal, shipping_fee, tax_amount, discount_amount, coupon_code, order_items, shipping_address, tracking_number, notes, payment_reference"
         )
         .eq("id", id)
         .maybeSingle()
@@ -70,6 +73,7 @@ export default function OrderTrackingPage() {
   const { id } = useParams()
   const router = useRouter()
   const { toast } = useToast()
+  const now = useNow(30 * 1000)
   const { data: order, isLoading, isError } = useMyOrder(id)
   const cancel = useCancelOrder()
   const reorder = useReorder()
@@ -138,7 +142,12 @@ export default function OrderTrackingPage() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-2xl font-bold">Order #{reference}</h2>
-            <Badge variant={meta.variant}>{meta.label}</Badge>
+            {/* Re-keyed on status so a live change visibly lands. */}
+            <OrderStatusBadge
+              key={order.status}
+              status={order.status}
+              className="motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95"
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             Placed on {formatDate(order.created_at)}
@@ -163,11 +172,25 @@ export default function OrderTrackingPage() {
         </div>
       </div>
 
-      {/* Where the order actually is — the reason most people open this page. */}
+      {/* Where the order actually is — the reason most people open this page.
+          It follows the order live: staff moving it on updates this card. */}
       <Card>
         <CardContent className="space-y-4 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-display text-base font-semibold">Tracking</h3>
+            <CustomerLiveChip />
+          </div>
           <FulfilmentTimeline status={order.status} />
-          <p className="text-center text-sm text-muted-foreground">{meta.description}</p>
+          <div className="text-center" aria-live="polite">
+            <p key={order.status} className="text-sm font-medium motion-safe:animate-in motion-safe:fade-in">
+              {meta.customerUpdate || meta.description}
+            </p>
+            {order.updated_at && (
+              <p className="text-xs text-muted-foreground" title={fullDateTime(order.updated_at)}>
+                Last update {timeAgo(order.updated_at, now)}
+              </p>
+            )}
+          </div>
 
           {order.tracking_number && (
             <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/40 p-3">

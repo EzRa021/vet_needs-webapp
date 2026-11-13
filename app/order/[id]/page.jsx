@@ -31,6 +31,14 @@ const useGuestOrder = (id, token) =>
   useQuery({
     queryKey: ["guest-order", id, token],
     enabled: !!id && !!token,
+    // Guests have no session, so RLS gives them nothing to subscribe to over
+    // Realtime. Polling get_guest_order() keeps the status current instead:
+    // every 30s while the order is still moving, and on returning to the tab.
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status && ["canceled", "refunded", "delivered"].includes(status) ? false : 30 * 1000
+    },
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const supabase = createClient()
       const { data, error } = await supabase.rpc("get_guest_order", {

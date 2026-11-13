@@ -20,6 +20,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ShieldAlert } from "lucide-react"
 import AdminSidebar from "@/components/admin/admin-sidebar"
+import AdminOrderRealtime from "@/components/admin/order-realtime"
 import { findNavTitle, findNavTrail } from "@/components/admin/admin-nav"
 import { useIsStaff } from "@/stores/adminStore"
 
@@ -55,6 +56,9 @@ export default function AdminLayout({ children }) {
 
   return (
     <SidebarProvider>
+      {/* Live orders: keeps every order view in sync and alerts staff to new
+          orders and payments on whichever admin page they're on. */}
+      <AdminOrderRealtime />
       <AdminSidebar />
       <SidebarInset>
         {/* Pinned: on a long form the sidebar toggle and the breadcrumb are the

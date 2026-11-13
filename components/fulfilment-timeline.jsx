@@ -40,10 +40,11 @@ export default function FulfilmentTimeline({ status, className }) {
           <li key={step} className="flex flex-col items-center gap-2 text-center">
             <div
               className={cn(
-                "flex size-9 items-center justify-center rounded-full text-sm font-semibold",
+                "flex size-9 items-center justify-center rounded-full text-sm font-semibold transition-colors duration-500",
                 done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                 // The step they're actually on is the one they came to find.
-                current && "ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                // It pops in when the order reaches it, including live.
+                current && "ring-2 ring-primary/30 ring-offset-2 ring-offset-background motion-safe:animate-step-arrive"
               )}
             >
               {done ? <Check className="size-4" /> : i + 1}

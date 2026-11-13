@@ -40,7 +40,7 @@ export const ADMIN_NAV = [
   {
     label: "Sales",
     items: [
-      { title: "Orders", href: "/admin/orders", icon: ShoppingBag, role: "staff", ready: true },
+      { title: "Orders", href: "/admin/orders", icon: ShoppingBag, role: "staff", ready: true, badge: "orders" },
       { title: "Refunds", href: "/admin/refunds", icon: Undo2, role: "admin", ready: true },
       { title: "Customers", href: "/admin/customers", icon: Users, role: "admin", ready: true },
       { title: "Coupons", href: "/admin/coupons", icon: Ticket, role: "admin", ready: true },
