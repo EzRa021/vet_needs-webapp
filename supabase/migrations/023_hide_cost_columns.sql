@@ -33,12 +33,43 @@
 --   · the admin item reads/writes switched to the service role
 -- Run them together or the catalogue + admin break.
 --
--- Idempotent; safe to re-run.
+-- ⚠️ CORRECTED (Nov 2026). The first version of this file did only
+--
+--   revoke select (cost_price) on public.items from anon, authenticated;
+--
+-- which Postgres treats as a no-op: a role that holds SELECT on the WHOLE
+-- table can read every column, whatever its column-level privileges say, and
+-- Supabase grants table-wide SELECT to anon/authenticated by default. So
+-- cost_price stayed readable. It also named pos_external_id / pos_source on
+-- items, which no migration creates (002 put them on categories), so on a
+-- fresh database it errored and stopped the migration run.
+--
+-- FIX: take table-wide SELECT away, then grant it back column by column for
+-- every column EXCEPT the hidden ones. That is what PostgREST then honours.
+--
+-- ⚠️ FOLLOW-ON: a column added to items later is NOT readable by the shop
+-- until it's granted (`grant select (new_col) on public.items to anon,
+-- authenticated;`). That's the safe default for a table holding margins.
+--
+-- Idempotent; safe to re-run. Re-run it after adding columns to items.
 -- ============================================================
 
-revoke select (cost_price)      on public.items from anon, authenticated;
-revoke select (pos_external_id) on public.items from anon, authenticated;
-revoke select (pos_source)      on public.items from anon, authenticated;
+do $$
+declare
+  hidden constant text[] := array['cost_price', 'pos_external_id', 'pos_source'];
+  visible text;
+begin
+  select string_agg(quote_ident(column_name), ', ' order by ordinal_position)
+    into visible
+    from information_schema.columns
+   where table_schema = 'public'
+     and table_name = 'items'
+     and column_name <> all (hidden);
+
+  revoke select on public.items from anon, authenticated;
+  execute format('grant select (%s) on public.items to anon, authenticated', visible);
+end
+$$;
 
 -- The service role bypasses column grants (it bypasses RLS entirely), so the
 -- admin — gated by getStaffUser() and reading through createAdminClient() —
