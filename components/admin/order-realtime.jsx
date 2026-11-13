@@ -58,6 +58,7 @@ export default function AdminOrderRealtime() {
     let wasDisconnected = false
     let refreshTimer = null
     let onlineCheck = null
+    let catchUp = null
 
     // Coalesce bursts (payment confirmation writes the row more than once)
     // into one refetch of whatever order queries are on screen.
@@ -124,6 +125,12 @@ export default function AdminOrderRealtime() {
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           store().setConnection("live")
+          // The server finishes registering the subscription a moment after
+          // SUBSCRIBED (1–4 s, measured on the local stack); a change in that
+          // gap arrives as no event. One catch-up refetch after it closes the
+          // gap, on first connect and on every reconnect.
+          clearTimeout(catchUp)
+          catchUp = setTimeout(() => refresh(), 4000)
           // Anything that happened while the socket was down was missed —
           // refetch rather than trust the stale page.
           if (wasDisconnected) refresh()
@@ -158,6 +165,7 @@ export default function AdminOrderRealtime() {
     return () => {
       clearTimeout(refreshTimer)
       clearTimeout(onlineCheck)
+      clearTimeout(catchUp)
       window.removeEventListener("offline", onOffline)
       window.removeEventListener("online", onOnline)
       supabase.removeChannel(channel)

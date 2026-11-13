@@ -69,6 +69,11 @@ export default function CustomerOrderRealtime() {
     const onInsert = () => qc.invalidateQueries({ queryKey: ["my-orders"] })
 
     store().setConnection("connecting")
+    let catchUp = null
+    const resync = () => {
+      qc.invalidateQueries({ queryKey: ["my-orders"] })
+      qc.invalidateQueries({ queryKey: ["order"] })
+    }
     const channel = supabase
       // Unique per mount: see the note in components/admin/order-realtime.jsx.
       .channel(`orders:customer:${userId}:${Math.random().toString(36).slice(2)}`)
@@ -85,9 +90,12 @@ export default function CustomerOrderRealtime() {
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           store().setConnection("live")
-          // Catch up on anything that changed while disconnected.
-          qc.invalidateQueries({ queryKey: ["my-orders"] })
-          qc.invalidateQueries({ queryKey: ["order"] })
+          // Catch up on anything that changed while disconnected, and again
+          // once the server has finished registering the subscription (a
+          // change in the first few seconds after SUBSCRIBED sends no event).
+          resync()
+          clearTimeout(catchUp)
+          catchUp = setTimeout(resync, 4000)
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           store().setConnection("reconnecting")
         } else if (status === "CLOSED") {
@@ -96,6 +104,7 @@ export default function CustomerOrderRealtime() {
       })
 
     return () => {
+      clearTimeout(catchUp)
       supabase.removeChannel(channel)
       store().setConnection("idle")
     }

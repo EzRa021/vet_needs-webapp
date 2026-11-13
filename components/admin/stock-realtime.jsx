@@ -61,6 +61,7 @@ export default function AdminStockRealtime() {
     const store = useStockLiveStore.getState
     let refreshTimer = null
     let wasDisconnected = false
+    let catchUp = null
     const touched = new Set()
 
     // A paid order with five products writes five rows in one go; refetch the
@@ -135,6 +136,12 @@ export default function AdminStockRealtime() {
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           store().setConnection("live")
+          // The server finishes registering the subscription a moment after
+          // SUBSCRIBED (1–4 s, measured on the local stack); a change in that
+          // gap arrives as no event. One catch-up refetch after it closes the
+          // gap, on first connect and on every reconnect.
+          clearTimeout(catchUp)
+          catchUp = setTimeout(() => refresh(), 4000)
           if (wasDisconnected) refresh()
           wasDisconnected = false
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -160,6 +167,7 @@ export default function AdminStockRealtime() {
 
     return () => {
       clearTimeout(refreshTimer)
+      clearTimeout(catchUp)
       window.removeEventListener("offline", onOffline)
       window.removeEventListener("online", onOnline)
       supabase.removeChannel(channel)
