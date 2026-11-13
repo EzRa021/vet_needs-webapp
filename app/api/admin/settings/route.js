@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
 import { parseAdminBody, SettingsUpdateSchema } from '@/lib/validation/admin'
 import { invalidateSettingsCache } from '@/lib/settings'
+import { MAX_ALERT_RECIPIENTS } from '@/lib/email/staff-alerts'
 
 // Only these keys are editable from the admin. Anything else in the request
 // is ignored, so a tampered body can't invent new settings rows.
@@ -13,7 +14,12 @@ const EDITABLE = {
   support_email: { type: 'string', label: 'Support email' },
   support_phone: { type: 'string', label: 'Support phone' },
   free_shipping_threshold: { type: 'number', label: 'Free shipping over', nullable: true },
+  // Private (never is_public): who gets new-order emails. Read by
+  // lib/email/staff-alerts.js with the service role.
+  order_alert_email: { type: 'emails', label: 'Order alert email' },
 }
+
+const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/
 
 // GET /api/admin/settings
 export async function GET() {
@@ -54,7 +60,29 @@ export async function PATCH(request) {
       if (!spec || spec.readOnly) continue
 
       let value
-      if (spec.type === 'number') {
+      if (spec.type === 'emails') {
+        // One or more addresses, comma-separated. Reject a typo rather than
+        // silently dropping it: a mistyped alert address means missed orders.
+        const parts = String(raw ?? '')
+          .split(/[,;\s]+/)
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+        const bad = parts.find((p) => !EMAIL.test(p))
+        if (bad) {
+          return NextResponse.json(
+            { error: `${spec.label}: “${bad.slice(0, 80)}” isn't a valid email address.` },
+            { status: 400 }
+          )
+        }
+        const unique = [...new Set(parts)]
+        if (unique.length > MAX_ALERT_RECIPIENTS) {
+          return NextResponse.json(
+            { error: `${spec.label}: up to ${MAX_ALERT_RECIPIENTS} addresses.` },
+            { status: 400 }
+          )
+        }
+        value = unique.join(', ')
+      } else if (spec.type === 'number') {
         if ((raw === '' || raw === null) && spec.nullable) {
           value = null
         } else {
@@ -79,11 +107,14 @@ export async function PATCH(request) {
     }
 
     // settings.value is jsonb — Supabase serialises the JS value for us.
+    // Upsert, so a setting added after the seed (order_alert_email) creates its
+    // row on first save. A new row takes the column defaults: is_public = false,
+    // which keeps it out of the storefront. Existing rows keep their is_public
+    // and description — only value is written.
     for (const u of updates) {
       const { error } = await auth.supabase
         .from('settings')
-        .update({ value: u.value })
-        .eq('key', u.key)
+        .upsert({ key: u.key, value: u.value }, { onConflict: 'key' })
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 400 })
       }

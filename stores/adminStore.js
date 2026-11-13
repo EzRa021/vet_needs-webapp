@@ -395,6 +395,30 @@ export const useSaveSettings = () => {
   })
 }
 
+// Where new-order emails go and whether the server can send mail. Keyed under
+// ['admin', 'settings'] so saving settings refreshes it.
+export const useOrderAlertStatus = () =>
+  useQuery({
+    queryKey: ['admin', 'settings', 'order-alerts'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/settings/order-alerts')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to load alert settings')
+      return json.data
+    },
+    staleTime: 30 * 1000,
+  })
+
+export const useSendTestOrderAlert = () =>
+  useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/admin/settings/order-alerts', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to send the test email')
+      return json.data
+    },
+  })
+
 // ---------- Coupons (admin-only) ----------
 export const useAdminCoupons = (search) =>
   useQuery({

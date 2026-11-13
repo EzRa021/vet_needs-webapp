@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { TriangleAlert, ShieldCheck, Save, Info } from "lucide-react"
+import { TriangleAlert, ShieldCheck, Save, Info, MailCheck, Send } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,17 +11,30 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { useAdminSettings, useSaveSettings } from "@/stores/adminStore"
+import {
+  useAdminSettings,
+  useOrderAlertStatus,
+  useSaveSettings,
+  useSendTestOrderAlert,
+} from "@/stores/adminStore"
 import { useToast } from "@/hooks/use-toast"
 import { formatNaira } from "@/lib/pricing"
 
 // settings.value is jsonb, so a string arrives quoted-decoded already.
 const raw = (v) => (v === null || v === undefined ? "" : String(v))
 
+// Settings that may not have a row yet (added after the seed). The form still
+// edits them; the first save creates the row.
+const EXTRA_KEYS = ["order_alert_email"]
+
+const list = (emails) => (emails?.length ? emails.join(", ") : "")
+
 export default function AdminSettingsPage() {
   const { toast } = useToast()
   const { data: settings, isLoading, isError, error } = useAdminSettings()
   const save = useSaveSettings()
+  const alertStatus = useOrderAlertStatus()
+  const testAlert = useSendTestOrderAlert()
 
   const [form, setForm] = useState({})
   const [formError, setFormError] = useState(null)
@@ -36,9 +49,24 @@ export default function AdminSettingsPage() {
   const setInput = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const byKey = Object.fromEntries((settings || []).map((s) => [s.key, s]))
-  const dirty =
-    settings &&
-    settings.some((s) => raw(s.value) !== (form[s.key] ?? ""))
+  const keys = [...new Set([...(settings || []).map((s) => s.key), ...EXTRA_KEYS])]
+  const dirty = settings && keys.some((k) => raw(byKey[k]?.value) !== (form[k] ?? ""))
+  const alertDirty = raw(byKey.order_alert_email?.value) !== (form.order_alert_email ?? "")
+  const alertInfo = alertStatus.data
+
+  const sendTest = async () => {
+    try {
+      const { sent, failed } = await testAlert.mutateAsync()
+      toast({
+        title: `Test email sent to ${list(sent)}`,
+        description: failed.length
+          ? `Couldn't reach ${list(failed.map((f) => f.to))}.`
+          : "Check the inbox (and spam, the first time). It can take a minute to arrive.",
+      })
+    } catch (err) {
+      toast({ title: "Test email didn't send", description: err.message, variant: "destructive" })
+    }
+  }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -216,6 +244,83 @@ export default function AdminSettingsPage() {
                   </FieldDescription>
                 </Field>
               </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MailCheck className="size-4 text-primary" aria-hidden="true" />
+                Notifications
+              </CardTitle>
+              <CardDescription>Who gets an email when a customer places an order.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {alertInfo && !alertInfo.emailConfigured && (
+                <Alert variant="destructive">
+                  <TriangleAlert />
+                  <AlertTitle>Email isn&apos;t set up on the server yet</AlertTitle>
+                  <AlertDescription>
+                    No order emails can go out until GMAIL_USER and GMAIL_APP_PASSWORD (a Google app
+                    password) are added to your hosting environment and the site is redeployed.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="order_alert_email">Order alert email</FieldLabel>
+                  <Input
+                    id="order_alert_email"
+                    // Text, not type="email" multiple: browsers strip the spaces
+                    // after commas while you type. The server validates each address.
+                    type="text"
+                    autoComplete="email"
+                    inputMode="email"
+                    spellCheck={false}
+                    value={form.order_alert_email ?? ""}
+                    onChange={setInput("order_alert_email")}
+                    placeholder="owner@gmail.com, manager@gmail.com"
+                    className="max-w-xl"
+                  />
+                  <FieldDescription>
+                    Every new order is emailed here, with the customer&apos;s phone, address and items.
+                    Separate up to 5 addresses with commas.{" "}
+                    {alertStatus.isLoading
+                      ? null
+                      : alertInfo?.source === "settings"
+                        ? `Alerts currently go to ${list(alertInfo.recipients)}.`
+                        : alertInfo?.fallback?.length
+                          ? `Left blank, alerts go to ${list(alertInfo.fallback)}.`
+                          : "Left blank, nobody gets order emails."}
+                  </FieldDescription>
+                </Field>
+              </FieldGroup>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={sendTest}
+                  disabled={
+                    testAlert.isPending || alertDirty || !alertInfo?.emailConfigured || !alertInfo?.recipients?.length
+                  }
+                >
+                  {testAlert.isPending ? <Spinner data-icon="inline-start" /> : <Send data-icon="inline-start" />}
+                  Send test email
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {alertDirty
+                    ? "Save changes first, then send a test."
+                    : "Sends a sample order to the address above."}
+                </span>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Want a phone notification? Use the Gmail address signed in on your phone. If it&apos;s the
+                same account the shop sends from, the Gmail app may not notify you about mail from itself.
+              </p>
             </CardContent>
           </Card>
         </div>
