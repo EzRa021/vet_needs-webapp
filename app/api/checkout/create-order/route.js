@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
+import { sendNewOrderAlert } from '@/lib/email/staff-alerts'
 import { calcTotals } from '@/lib/pricing'
 import { resolveShipping } from '@/lib/shipping'
 import { allow, TOO_MANY } from '@/lib/rate-limit'
@@ -269,6 +270,12 @@ Phone: ${shippingInfo.phone}`
       console.error('Create order error:', error)
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
     }
+
+    // Email the shop about the new order. after() runs it once the response
+    // has gone, so the customer never waits on Gmail and a mail failure can't
+    // touch checkout. Only here, not on the duplicate path above: a retried
+    // request for the same order must not alert twice.
+    after(() => sendNewOrderAlert(order))
 
     return NextResponse.json({
       data: order,
