@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import { PRODUCTION_URL } from '@/lib/site-url'
 
-const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || 'https://vetneeds.ng'
+const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL
 
 // Rebuilt hourly rather than per request: a sitemap that queries the whole
 // catalogue on every crawler hit is a free way to hammer the database.

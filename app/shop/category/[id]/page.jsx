@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { LEGAL } from '@/lib/legal'
 import CategoryBrowser from './category-browser'
+import { PRODUCTION_URL } from '@/lib/site-url'
 
-const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || 'https://vetneeds.ng'
+const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL
 
 async function getCategory(id) {
   try {

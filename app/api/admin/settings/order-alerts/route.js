@@ -37,7 +37,7 @@ export async function POST() {
     return NextResponse.json(
       {
         error:
-          "Email isn't set up on the server. Add GMAIL_USER and GMAIL_APP_PASSWORD to the hosting environment and redeploy.",
+          "Email isn't set up on the server. Add ZEPTOMAIL_TOKEN and EMAIL_FROM (or GMAIL_USER and GMAIL_APP_PASSWORD) to the hosting environment and redeploy.",
       },
       { status: 400 }
     )

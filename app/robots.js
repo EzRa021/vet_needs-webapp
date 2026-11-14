@@ -1,4 +1,5 @@
-const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || 'https://vetneeds.ng'
+import { PRODUCTION_URL } from '@/lib/site-url'
+const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL
 
 export default function robots() {
   return {

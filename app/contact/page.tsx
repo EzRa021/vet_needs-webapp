@@ -28,9 +28,9 @@ import { Reveal, RevealOnLoad } from "@/components/motion/reveal"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const CONTACT_INFO = [
-  { icon: MapPin, title: "Address", lines: ["Lagos, Nigeria", "Nationwide delivery"] },
+  { icon: MapPin, title: "Address", lines: ["Ibadan, Oyo State", "Delivery across Nigeria, or collect from the store"] },
   { icon: Phone, title: "Phone", lines: ["+234 800 000 0000", "Mon–Sat, 8am–6pm"] },
-  { icon: Mail, title: "Email", lines: ["support@vetneeds.ng", "orders@vetneeds.ng"] },
+  { icon: Mail, title: "Email", lines: ["support@jvigor.com.ng", "orders@jvigor.com.ng"] },
   { icon: Clock, title: "Business Hours", lines: ["Mon–Fri: 8am – 6pm", "Sat: 9am – 4pm", "Sun: Closed"] },
 ]
 

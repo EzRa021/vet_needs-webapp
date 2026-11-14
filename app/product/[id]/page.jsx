@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { LEGAL } from '@/lib/legal'
 import ProductDetail from './product-detail'
+import { PRODUCTION_URL } from '@/lib/site-url'
 
-const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || 'https://vetneeds.ng'
+const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL
 
 // Server-side read for metadata + structured data. The page body still fetches
 // client-side (it needs cart/wishlist interactivity); this is the half a crawler

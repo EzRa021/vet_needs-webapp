@@ -261,8 +261,9 @@ export default function AdminSettingsPage() {
                   <TriangleAlert />
                   <AlertTitle>Email isn&apos;t set up on the server yet</AlertTitle>
                   <AlertDescription>
-                    No order emails can go out until GMAIL_USER and GMAIL_APP_PASSWORD (a Google app
-                    password) are added to your hosting environment and the site is redeployed.
+                    No order emails can go out until a sender is added to your hosting environment
+                    and the site is redeployed: ZEPTOMAIL_TOKEN and EMAIL_FROM for Zoho ZeptoMail, or
+                    GMAIL_USER and GMAIL_APP_PASSWORD (a Google app password).
                   </AlertDescription>
                 </Alert>
               )}

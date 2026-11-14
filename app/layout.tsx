@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import { Inter, Manrope } from "next/font/google"
 import "./globals.css"
 import { SiteHeader, SiteFooter, SiteMain } from "@/components/site-chrome"
+import { PRODUCTION_URL } from "@/lib/site-url"
 
 // Manrope headings (modern, professional, friendly) + Inter body (readability)
 const body = Inter({ subsets: ["latin"], variable: "--font-sans" })
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   // localhost and link previews break in production. Next warns about this at
   // build time and it's easy to ignore until someone shares a product on
   // WhatsApp and gets a blank card.
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://vetneeds.ng"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL),
   title: {
     default: "VetNeeds — Poultry Feed, Pet Food & Farm Supplies in Nigeria",
     template: "%s | VetNeeds",

@@ -78,7 +78,7 @@ export async function POST() {
           .eq('id', row.id)
         sent++
       } else if (result.skipped) {
-        // No RESEND_API_KEY. Leave it ready — this is "not configured yet", not
+        // No email provider configured. Leave it ready — this is "not configured yet", not
         // "failed", and marking it sent would silently drop the waiting list.
         skipped++
       } else {
