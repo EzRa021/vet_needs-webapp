@@ -58,7 +58,7 @@ export default function CustomerOrderRealtime() {
       store().markChanged(row.id)
 
       if (before && before !== row.status) {
-        const meta = statusMeta(row.status)
+        const meta = statusMeta(row.status, row.fulfilment_method)
         toastRef.current({
           title: `Order ${orderRef(row.id)}: ${meta.label}`,
           description: meta.customerUpdate,

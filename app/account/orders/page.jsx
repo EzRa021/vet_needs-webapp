@@ -40,7 +40,7 @@ const useMyOrders = (enabled) =>
       // Only what the list renders — the detail page fetches the rest itself.
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, updated_at, paid_at, status, total_amount, order_items, tracking_number")
+        .select("id, created_at, updated_at, paid_at, status, total_amount, order_items, tracking_number, fulfilment_method")
         .order("created_at", { ascending: false })
       if (error) throw error
       return data
@@ -145,7 +145,7 @@ export default function MyOrdersPage() {
                   </div>
                   <p className="truncate text-sm text-muted-foreground">{itemSummary(order)}</p>
                   <div className="flex items-center justify-between gap-3">
-                    <OrderStatusBadge status={order.status} />
+                    <OrderStatusBadge status={order.status} method={order.fulfilment_method} />
                     <OrderProgressTicks status={order.status} />
                   </div>
                 </Link>
@@ -199,7 +199,7 @@ export default function MyOrdersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1.5">
-                        <OrderStatusBadge status={order.status} />
+                        <OrderStatusBadge status={order.status} method={order.fulfilment_method} />
                         <OrderProgressTicks status={order.status} />
                         {order.updated_at && (
                           <span className="text-xs text-muted-foreground" title={fullDateTime(order.updated_at)}>

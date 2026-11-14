@@ -16,6 +16,7 @@ import {
   Phone,
   Printer,
   StickyNote,
+  Store,
   TriangleAlert,
   Truck,
   XCircle,
@@ -201,7 +202,9 @@ function ExpandedOrder({ order, address }) {
       </section>
 
       <section aria-label="Delivery" className="flex flex-col gap-3">
-        <h4 className="font-display text-sm font-semibold">Deliver to</h4>
+        <h4 className="font-display text-sm font-semibold">
+          {order.fulfilment_method === "pickup" ? "Store pickup" : "Deliver to"}
+        </h4>
         <address className="whitespace-pre-line text-sm not-italic text-muted-foreground">
           {address.lines.length ? address.lines.join("\n") : "No address on file"}
         </address>
@@ -516,10 +519,19 @@ export default function OrdersTable({
                   {columns.delivery && (
                     <TableCell className="hidden max-w-[180px] xl:table-cell">
                       <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate text-sm">
-                          {[address.city, address.state].filter(Boolean).join(", ") || "—"}
-                        </span>
-                        {o.tracking_number ? (
+                        {o.fulfilment_method === "pickup" ? (
+                          <span className="flex min-w-0 items-center gap-1 text-sm">
+                            <Store className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <span className="truncate">Store pickup</span>
+                          </span>
+                        ) : (
+                          <span className="truncate text-sm">
+                            {o.delivery?.area
+                              ? `${o.delivery.area.name}, ${o.delivery.area.city}`
+                              : [address.city, address.state].filter(Boolean).join(", ") || "—"}
+                          </span>
+                        )}
+                        {o.fulfilment_method === "pickup" ? null : o.tracking_number ? (
                           <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
                             <Truck className="size-3 shrink-0" aria-hidden="true" />
                             <span className="truncate">{o.tracking_number}</span>
@@ -541,7 +553,7 @@ export default function OrdersTable({
 
                   <TableCell>
                     <div className="flex flex-col gap-1.5">
-                      <OrderStatusBadge status={o.status} />
+                      <OrderStatusBadge status={o.status} method={o.fulfilment_method} />
                       <OrderProgressTicks status={o.status} />
                       <StatusAge order={o} now={now} />
                     </div>

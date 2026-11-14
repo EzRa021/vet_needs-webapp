@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import CheckoutSteps from "@/components/checkout-steps"
-import { useStoreSettings } from "@/stores/shopStore"
+import PickupPointCard from "@/components/pickup-point-card"
 import { useCartStore } from "@/stores/cartStore"
 import { useCheckoutStore } from "@/stores/checkoutStore"
 import { useUser } from "@/stores/authStore"
@@ -25,8 +25,22 @@ export default function ReviewOrderPage() {
   
   const { items, getCartTotals } = useCartStore()
   const { shippingInfo, currentOrder, coupon } = useCheckoutStore()
-  const { pricingConfig } = useStoreSettings()
-  const totals = getCartTotals({ discount: coupon?.discount || 0, ...pricingConfig })
+  // The order the server just priced is what Paystack will charge, so show
+  // ITS numbers. Recomputing from the cart here used the flat settings fee and
+  // could disagree with the delivery price worked out at checkout (028).
+  // The cart totals are only a fallback for the VAT-included note.
+  const cartTotals = getCartTotals({ discount: coupon?.discount || 0 })
+  const totals = currentOrder
+    ? {
+        subtotal: Number(currentOrder.subtotal) || 0,
+        discount: Number(currentOrder.discount_amount) || 0,
+        shipping: Number(currentOrder.shipping_fee) || 0,
+        tax: Number(currentOrder.tax_amount) || 0,
+        includedTax: cartTotals.includedTax,
+        total: Number(currentOrder.total_amount) || 0,
+      }
+    : cartTotals
+  const isPickup = currentOrder?.fulfilment_method === "pickup"
 
   // No auth gate: guests get this far too (011). Holding `currentOrder` is what
   // proves they're mid-checkout, and its guest_token is what proves the order is
@@ -108,7 +122,7 @@ export default function ReviewOrderPage() {
           {/* Shipping Information */}
           <div className="bg-card rounded-lg border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Shipping Information</h2>
+              <h2 className="text-xl font-semibold">{isPickup ? "Pickup" : "Delivery"}</h2>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/checkout" className="flex items-center gap-1 text-primary">
                   <Edit2 className="h-4 w-4" />
@@ -122,16 +136,36 @@ export default function ReviewOrderPage() {
                 <p className="text-sm">{shippingInfo.email}</p>
                 <p className="text-sm">{shippingInfo.phone}</p>
               </div>
-              <div>
-                <h3 className="font-medium mb-2">Shipping Address</h3>
-                <p className="text-sm">{shippingInfo.firstName} {shippingInfo.lastName}</p>
-                <p className="text-sm">{shippingInfo.address}</p>
-                {shippingInfo.address2 && <p className="text-sm">{shippingInfo.address2}</p>}
-                <p className="text-sm">
-                  {shippingInfo.city}, {shippingInfo.state} {shippingInfo.zip}
-                </p>
-                <p className="text-sm">{shippingInfo.country}</p>
-              </div>
+              {isPickup ? (
+                <div>
+                  <h3 className="font-medium mb-2">Collecting from</h3>
+                  <PickupPointCard point={currentOrder?.delivery?.pickup_point} />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Collected by {shippingInfo.firstName} {shippingInfo.lastName}. We&apos;ll email
+                    you when it&apos;s ready, with a pickup code.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="font-medium mb-2">Delivery address</h3>
+                  <p className="text-sm">{shippingInfo.firstName} {shippingInfo.lastName}</p>
+                  <p className="text-sm">{shippingInfo.address}</p>
+                  {shippingInfo.address2 && <p className="text-sm">{shippingInfo.address2}</p>}
+                  {currentOrder?.delivery?.landmark && (
+                    <p className="text-sm">Near {currentOrder.delivery.landmark}</p>
+                  )}
+                  {currentOrder?.delivery?.area && (
+                    <p className="text-sm">{currentOrder.delivery.area.name}</p>
+                  )}
+                  <p className="text-sm">
+                    {currentOrder?.delivery?.area?.city || shippingInfo.city},{" "}
+                    {currentOrder?.delivery?.area?.state || shippingInfo.state} {shippingInfo.zip}
+                  </p>
+                  {currentOrder?.delivery?.location && (
+                    <p className="text-sm text-muted-foreground">Your location is saved for the rider</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -212,11 +246,11 @@ export default function ReviewOrderPage() {
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Shipping</span>
-                    {totals.freeShipping.qualifies ? (
+                    <span className="text-muted-foreground">{isPickup ? "Pickup" : "Delivery"}</span>
+                    {totals.shipping === 0 ? (
                       <span className="font-medium text-success">Free</span>
                     ) : (
-                      <span>{formatNaira(totals.shipping)}</span>
+                      <span className="tabular-nums">{formatNaira(totals.shipping)}</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
@@ -232,7 +266,7 @@ export default function ReviewOrderPage() {
                   <Separator />
                   <div className="flex items-center justify-between font-medium text-lg">
                     <span>Total</span>
-                    <span>{formatNaira(totals.total)}</span>
+                    <span className="tabular-nums">{formatNaira(totals.total)}</span>
                   </div>
 
                   <div className="pt-4">

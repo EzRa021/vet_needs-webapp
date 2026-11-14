@@ -8,6 +8,8 @@ const emptyShipping = {
   phone: '',
   address: '',
   address2: '',
+  // "Opposite Bodija market" — how riders actually find a Nigerian address (028).
+  landmark: '',
   city: '',
   state: '',
   zip: '',
@@ -18,6 +20,18 @@ const emptyShipping = {
 // submit (double-click, retry, refresh) onto the original order, so the key
 // must stay STABLE across those retries — regenerate it only when the shopper
 // genuinely means a different order (cart edited, or previous one paid for).
+// How the order reaches the customer (028).
+//   method         'delivery' | 'pickup'
+//   pickupPointId  the store they'll collect from
+//   areaKey        the area picker's choice — see parseAreaKey() in lib/delivery.js
+//   location       { lat, lng, accuracy } from "Use my current location", or null
+const emptyDelivery = {
+  method: 'delivery',
+  pickupPointId: '',
+  areaKey: '',
+  location: null,
+}
+
 const newKey = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -30,6 +44,7 @@ const newKey = () =>
 // needs on its own page.
 export const useCheckoutStore = create((set) => ({
   shippingInfo: { ...emptyShipping },
+  delivery: { ...emptyDelivery },
   orderNotes: '',
   currentOrder: null,
   idempotencyKey: newKey(),
@@ -44,6 +59,10 @@ export const useCheckoutStore = create((set) => ({
 
   updateShippingInfo: (info) => set((state) => ({
     shippingInfo: { ...state.shippingInfo, ...info }
+  })),
+
+  updateDelivery: (patch) => set((state) => ({
+    delivery: { ...state.delivery, ...patch }
   })),
 
   setOrderNotes: (notes) => set({ orderNotes: notes }),
@@ -62,6 +81,7 @@ export const useCheckoutStore = create((set) => ({
 
   resetCheckout: () => set({
     shippingInfo: { ...emptyShipping },
+    delivery: { ...emptyDelivery },
     orderNotes: '',
     currentOrder: null,
     coupon: null,

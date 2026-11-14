@@ -39,6 +39,8 @@ import { createClient } from "@/lib/supabase/client"
 import { formatNaira } from "@/lib/pricing"
 import { formatQuantity } from "@/lib/units"
 import { statusMeta } from "@/lib/order-status"
+import { pickupCodeVisible } from "@/lib/delivery"
+import PickupPointCard from "@/components/pickup-point-card"
 import { LEGAL } from "@/lib/legal"
 import { useCancelOrder, useReorder } from "@/stores/orderActions"
 
@@ -60,7 +62,7 @@ const useMyOrder = (id) =>
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, created_at, updated_at, paid_at, status, total_amount, subtotal, shipping_fee, tax_amount, discount_amount, coupon_code, order_items, shipping_address, tracking_number, notes, payment_reference"
+          "id, created_at, updated_at, paid_at, status, total_amount, subtotal, shipping_fee, tax_amount, discount_amount, coupon_code, order_items, shipping_address, tracking_number, notes, payment_reference, fulfilment_method, delivery, pickup_code"
         )
         .eq("id", id)
         .maybeSingle()
@@ -108,7 +110,8 @@ export default function OrderTrackingPage() {
   }
 
   const items = Array.isArray(order.order_items) ? order.order_items : []
-  const meta = statusMeta(order.status)
+  const meta = statusMeta(order.status, order.fulfilment_method)
+  const isPickup = order.fulfilment_method === "pickup"
   const reference = order.id.slice(0, 8).toUpperCase()
 
   const handleReorder = () =>
@@ -146,6 +149,7 @@ export default function OrderTrackingPage() {
             <OrderStatusBadge
               key={order.status}
               status={order.status}
+              method={order.fulfilment_method}
               className="motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95"
             />
           </div>
@@ -180,7 +184,7 @@ export default function OrderTrackingPage() {
             <h3 className="font-display text-base font-semibold">Tracking</h3>
             <CustomerLiveChip />
           </div>
-          <FulfilmentTimeline status={order.status} />
+          <FulfilmentTimeline status={order.status} method={order.fulfilment_method} />
           <div className="text-center" aria-live="polite">
             <p key={order.status} className="text-sm font-medium motion-safe:animate-in motion-safe:fade-in">
               {meta.customerUpdate || meta.description}
@@ -191,6 +195,13 @@ export default function OrderTrackingPage() {
               </p>
             )}
           </div>
+
+{isPickup && (
+            <PickupPointCard
+              point={order.delivery?.pickup_point}
+              code={pickupCodeVisible(order) ? order.pickup_code : null}
+            />
+          )}
 
           {order.tracking_number && (
             <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/40 p-3">
@@ -265,7 +276,7 @@ export default function OrderTrackingPage() {
             )}
             {order.shipping_fee != null && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Shipping</span>
+                <span className="text-muted-foreground">{isPickup ? "Pickup" : "Delivery"}</span>
                 <span className="tabular-nums">
                   {Number(order.shipping_fee) === 0 ? "Free" : formatNaira(order.shipping_fee)}
                 </span>
@@ -287,7 +298,7 @@ export default function OrderTrackingPage() {
             <>
               <Separator />
               <div>
-                <p className="mb-1 text-sm font-medium">Delivery address</p>
+                <p className="mb-1 text-sm font-medium">{isPickup ? "Collecting" : "Delivery address"}</p>
                 <p className="whitespace-pre-line text-sm text-muted-foreground">
                   {order.shipping_address}
                 </p>

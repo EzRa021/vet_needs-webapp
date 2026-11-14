@@ -27,6 +27,9 @@ const LIST_COLUMNS = [
   'email',
   'notes',
   'admin_notes',
+  'fulfilment_method',
+  'delivery',
+  'pickup_code',
 ].join(', ')
 
 // GET /api/admin/orders?search=&status=&range=&sort=&page=&limit=

@@ -57,6 +57,8 @@ const EMPTY = {
   unit_type: "piece",
   stock: 0,
   low_stock_threshold: 10,
+  // Shown in kg, stored as weight_grams (028). Prices delivery by weight.
+  weight_kg: "",
   allow_backorder: false,
   is_active: true,
   is_featured: false,
@@ -109,6 +111,7 @@ export default function ProductForm({ product }) {
       image_url: product.image_url || "",
       compare_at_price: product.compare_at_price ?? "",
       cost_price: product.cost_price ?? "",
+      weight_kg: product.weight_grams ? String(product.weight_grams / 1000) : "",
       attributes: product.attributes || {},
       tags: product.tags || [],
     })
@@ -161,13 +164,23 @@ export default function ProductForm({ product }) {
       return
     }
 
+    if (form.weight_kg !== "" && !(Number(form.weight_kg) > 0 && Number(form.weight_kg) <= 1000)) {
+      setError("The weight per piece must be between 0 and 1,000 kg.")
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
     try {
-      const { stock, category_id, ...rest } = form
+      const { stock, category_id, weight_kg, ...rest } = form
       const picked = category_id === NO_CATEGORY ? null : category_id
 
       const saved = await save.mutateAsync({
         id: product?.id,
         ...rest,
+        // Sold by the kg, an item weighs its quantity; a stored piece weight
+        // would only confuse the next person to edit it.
+        weight_grams:
+          form.unit_type === "kg" || weight_kg === "" ? null : Math.round(Number(weight_kg) * 1000),
         // Stock is only sent on CREATE (the opening balance). On edit it's
         // omitted entirely — not just read-only in the UI. Otherwise a form
         // opened before someone used Adjust Stock would submit its stale total
@@ -428,6 +441,30 @@ export default function ProductForm({ product }) {
                       : "Stock and quantities are whole numbers."}
                   </FieldDescription>
                 </Field>
+
+                {!isKg && (
+                  <Field>
+                    <FieldLabel htmlFor="p-weight">Weight per piece</FieldLabel>
+                    <div className="relative w-40">
+                      <Input
+                        id="p-weight"
+                        type="number"
+                        inputMode="decimal"
+                        step="0.001"
+                        min="0"
+                        value={form.weight_kg}
+                        onChange={setInput("weight_kg")}
+                        className="pr-10 tabular-nums"
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        kg
+                      </span>
+                    </div>
+                    <FieldDescription>
+                      Packed weight, used to price delivery: 25 for a 25 kg bag, 0.5 for a 500 g tin.
+                    </FieldDescription>
+                  </Field>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field>

@@ -20,6 +20,8 @@ import CustomerOrderRealtime from "@/components/customer-order-realtime"
 import { createClient } from "@/lib/supabase/client"
 import { formatNaira } from "@/lib/pricing"
 import { statusMeta, isTerminal } from "@/lib/order-status"
+import { pickupCodeVisible } from "@/lib/delivery"
+import PickupPointCard from "@/components/pickup-point-card"
 
 const formatDate = (value) =>
   new Date(value).toLocaleDateString("en-NG", {
@@ -57,7 +59,7 @@ function useOrder(orderId, guestToken) {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, created_at, status, total_amount, subtotal, shipping_fee, tax_amount, discount_amount, order_items, shipping_address, tracking_number"
+          "id, created_at, status, total_amount, subtotal, shipping_fee, tax_amount, discount_amount, order_items, shipping_address, tracking_number, fulfilment_method, delivery, pickup_code"
         )
         .eq("id", orderId)
         .maybeSingle()
@@ -160,7 +162,8 @@ export default function OrderSuccessPage() {
   }
 
   const items = Array.isArray(order.order_items) ? order.order_items : []
-  const meta = statusMeta(order.status)
+  const meta = statusMeta(order.status, order.fulfilment_method)
+  const isPickup = order.fulfilment_method === "pickup"
   const paid = !isTerminal(order.status) && order.status !== "pending"
 
   return (
@@ -205,7 +208,14 @@ export default function OrderSuccessPage() {
 
           <Separator />
 
-          <FulfilmentTimeline status={order.status} />
+          <FulfilmentTimeline status={order.status} method={order.fulfilment_method} />
+
+          {isPickup && (
+            <PickupPointCard
+              point={order.delivery?.pickup_point}
+              code={pickupCodeVisible(order) ? order.pickup_code : null}
+            />
+          )}
 
           <Separator />
 
@@ -241,7 +251,7 @@ export default function OrderSuccessPage() {
             )}
             {order.shipping_fee != null && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Shipping</span>
+                <span className="text-muted-foreground">{isPickup ? "Pickup" : "Delivery"}</span>
                 <span>
                   {Number(order.shipping_fee) === 0 ? "Free" : formatNaira(order.shipping_fee)}
                 </span>
@@ -263,7 +273,7 @@ export default function OrderSuccessPage() {
             <>
               <Separator />
               <div>
-                <p className="mb-1 text-sm font-medium">Delivering to</p>
+                <p className="mb-1 text-sm font-medium">{isPickup ? "Collecting" : "Delivering to"}</p>
                 <p className="whitespace-pre-line text-sm text-muted-foreground">
                   {order.shipping_address}
                 </p>

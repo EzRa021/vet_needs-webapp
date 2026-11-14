@@ -74,7 +74,7 @@ function AddressBlock({ order }) {
         <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Order details
         </p>
-        <p>Status: {statusMeta(order.status).label}</p>
+        <p>Status: {statusMeta(order.status, order.fulfilment_method).label}</p>
         {order.paid_at && <p>Paid: {formatDate(order.paid_at)}</p>}
         {order.tracking_number && <p>Tracking: {order.tracking_number}</p>}
       </div>
@@ -142,7 +142,7 @@ function Invoice({ order, items }) {
           )}
           {order.shipping_fee != null && (
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Shipping</dt>
+              <dt className="text-muted-foreground">{order.fulfilment_method === "pickup" ? "Pickup" : "Delivery"}</dt>
               <dd className="tabular-nums">
                 {Number(order.shipping_fee) === 0 ? "Free" : formatNaira(order.shipping_fee)}
               </dd>

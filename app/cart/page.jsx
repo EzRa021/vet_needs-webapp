@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useCartStore, maxQuantityFor } from "@/stores/cartStore"
 import { useCartSync } from "@/stores/cartSync"
 import { useCheckoutStore } from "@/stores/checkoutStore"
-import { useStoreSettings, useShippingQuote } from "@/stores/shopStore"
+import { useStoreSettings, useDeliveryOptions, useDeliveryQuote } from "@/stores/shopStore"
 import { useDefaultAddress } from "@/stores/addressStore"
 import CartChangesNotice from "@/components/cart-changes-notice"
 import CouponInput from "@/components/coupon-input"
@@ -35,11 +35,29 @@ export default function CartPage() {
   // you've decided to buy is the thing shoppers actually resent.
   const defaultAddress = useDefaultAddress()
   const quoteState = defaultAddress?.state || null
-  const { data: quote } = useShippingQuote(quoteState)
 
-  const shippingConfig = quote
-    ? { shippingFlat: quote.fee, freeShippingOver: quote.free_over }
-    : pricingConfig
+  // With area pricing on (028), Ibadan and Lagos prices depend on the area,
+  // which only checkout asks for. Quoting the state price there would show a
+  // number checkout then contradicts, so the cart says "at checkout" instead.
+  const { data: deliveryOptions } = useDeliveryOptions()
+  const areaPriced =
+    Boolean(deliveryOptions?.areaPricing) &&
+    (!quoteState ||
+      (deliveryOptions.cities || []).some(
+        (c) => c.state.toLowerCase() === quoteState.toLowerCase()
+      ))
+  const { data: quote } = useDeliveryQuote(
+    { items, method: "delivery", state: quoteState, areaKey: "" },
+    { enabled: Boolean(deliveryOptions) && !areaPriced }
+  )
+  const estimate = !areaPriced && quote?.ok ? quote : null
+  const deliveryLater = areaPriced || (quote && !quote.ok)
+
+  const shippingConfig = estimate
+    ? { shippingFlat: estimate.fee, freeShippingOver: estimate.free_over }
+    : deliveryLater
+      ? { shippingFlat: 0, freeShippingOver: null }
+      : pricingConfig
 
   // Preview only — the server recomputes discount + shipping from the order's
   // own state when it's created.
@@ -208,17 +226,21 @@ export default function CartPage() {
 
                   <div className="flex items-start justify-between">
                     <div className="flex flex-col">
-                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="text-muted-foreground">Delivery</span>
                       {/* Say what the number is based on. Without this it reads
                           as a fixed price, and changing it at checkout looks
                           like a bait-and-switch rather than a better estimate. */}
                       <span className="text-xs text-muted-foreground">
-                        {quoteState
-                          ? `Estimated for ${quoteState}`
-                          : "Confirmed at checkout"}
+                        {deliveryLater
+                          ? "Worked out at checkout from your area"
+                          : quoteState
+                            ? `Estimated for ${quoteState}`
+                            : "Confirmed at checkout"}
                       </span>
                     </div>
-                    {totals.freeShipping.qualifies ? (
+                    {deliveryLater ? (
+                      <span className="text-muted-foreground" aria-label="Worked out at checkout">—</span>
+                    ) : totals.freeShipping.qualifies ? (
                       <span className="font-medium text-success">Free</span>
                     ) : (
                       <span className="tabular-nums">{formatNaira(totals.shipping)}</span>
@@ -266,8 +288,8 @@ export default function CartPage() {
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between font-medium text-lg">
-                    <span>Total</span>
-                    <span>{formatNaira(totals.total)}</span>
+                    <span>{deliveryLater ? "Total before delivery" : "Total"}</span>
+                    <span className="tabular-nums">{formatNaira(totals.total)}</span>
                   </div>
 
                   <div className="pt-4">

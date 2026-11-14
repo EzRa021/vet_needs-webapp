@@ -8,11 +8,13 @@ import { FULFILMENT_FLOW, statusMeta, isTerminal } from "@/lib/order-status"
 // The happy-path journey, with everything after the order's current step shown
 // as still to come. Shared by the checkout success page and the order tracking
 // page so the two can't tell a customer different stories about the same order.
-export default function FulfilmentTimeline({ status, className }) {
+// method: the order's fulfilment_method, so a pickup reads "Ready for pickup"
+// and "Collected" instead of "Shipped" and "Delivered" (028).
+export default function FulfilmentTimeline({ status, method, className }) {
   // A canceled or refunded order never reaches "delivered", so drawing a
   // progress track would imply it's still on its way. Say what happened instead.
   if (isTerminal(status)) {
-    const meta = statusMeta(status)
+    const meta = statusMeta(status, method)
     return (
       <div
         className={cn(
@@ -56,7 +58,7 @@ export default function FulfilmentTimeline({ status, className }) {
                 current && "text-primary"
               )}
             >
-              {statusMeta(step).label}
+              {statusMeta(step, method).label}
             </span>
           </li>
         )

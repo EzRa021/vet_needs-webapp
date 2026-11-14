@@ -14,6 +14,7 @@ const PUBLIC_KEYS = [
   'support_email',
   'support_phone',
   'free_shipping_threshold',
+  'area_pricing_enabled',
 ]
 
 export async function GET() {

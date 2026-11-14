@@ -35,6 +35,7 @@ import {
 import BrandImage from "@/components/brand-image"
 import LiveIndicator from "@/components/admin/orders/live-indicator"
 import { OrderStatusBadge } from "@/components/order-status-badge"
+import DeliveryDetails from "@/components/admin/orders/delivery-details"
 import { useNow } from "@/hooks/use-now"
 import { timeAgo, fullDateTime } from "@/lib/relative-time"
 import { useAdminOrder, useUpdateOrder } from "@/stores/adminStore"
@@ -43,9 +44,9 @@ import { formatNaira } from "@/lib/pricing"
 import { statusMeta, FULFILMENT_FLOW, isTerminal } from "@/lib/order-status"
 import { cn } from "@/lib/utils"
 
-function Timeline({ status }) {
+function Timeline({ status, method }) {
   if (isTerminal(status)) {
-    const meta = statusMeta(status)
+    const meta = statusMeta(status, method)
     return (
       <Alert variant="destructive">
         <TriangleAlert />
@@ -60,7 +61,7 @@ function Timeline({ status }) {
       {FULFILMENT_FLOW.map((step, i) => {
         const done = i < currentIndex
         const active = i === currentIndex
-        const meta = statusMeta(step)
+        const meta = statusMeta(step, method)
         return (
           <li key={step} className="flex flex-1 items-center last:flex-none">
             <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:gap-2">
@@ -162,7 +163,9 @@ export default function OrderDetailPage() {
     )
   }
 
-  const meta = statusMeta(order.status)
+  const method = order.fulfilment_method
+  const isPickup = method === "pickup"
+  const meta = statusMeta(order.status, method)
   const items = Array.isArray(order.order_items) ? order.order_items : []
   const transitions = order.allowedTransitions || []
   const trackingChanged = tracking !== (order.tracking_number || "")
@@ -196,6 +199,7 @@ export default function OrderDetailPage() {
             <OrderStatusBadge
               key={order.status}
               status={order.status}
+              method={method}
               className="motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95"
             />
             <LiveIndicator now={now} />
@@ -226,7 +230,7 @@ export default function OrderDetailPage() {
       {/* Progress */}
       <Card>
         <CardContent className="pt-6">
-          <Timeline status={order.status} />
+          <Timeline status={order.status} method={method} />
           <p className="mt-4 text-sm text-muted-foreground">{meta.description}</p>
         </CardContent>
       </Card>
@@ -270,7 +274,9 @@ export default function OrderDetailPage() {
 
               <div className="flex flex-col">
                 {order.subtotal != null && <Row label="Subtotal">{formatNaira(order.subtotal)}</Row>}
-                {order.shipping_fee != null && <Row label="Shipping">{formatNaira(order.shipping_fee)}</Row>}
+                {order.shipping_fee != null && (
+                  <Row label={isPickup ? "Pickup" : "Delivery"}>{formatNaira(order.shipping_fee)}</Row>
+                )}
                 {order.tax_amount != null && Number(order.tax_amount) > 0 && (
                   <Row label="VAT added">{formatNaira(order.tax_amount)}</Row>
                 )}
@@ -353,7 +359,7 @@ export default function OrderDetailPage() {
                         {isTerminal(order.status)
                           ? `This order is ${meta.label.toLowerCase()} — no further changes.`
                           : order.status === "delivered"
-                            ? "Delivered — nothing left to move. To return money, use Refunds."
+                            ? `${meta.label} — nothing left to move. To return money, use Refunds.`
                             : "No status changes available."}
                       </AlertDescription>
                     </Alert>
@@ -367,7 +373,7 @@ export default function OrderDetailPage() {
                           <SelectGroup>
                             {transitions.map((s) => (
                               <SelectItem key={s} value={s}>
-                                {statusMeta(s).label}
+                                {statusMeta(s, method).label}
                               </SelectItem>
                             ))}
                           </SelectGroup>
@@ -385,7 +391,7 @@ export default function OrderDetailPage() {
                         className="w-full"
                         disabled={!nextStatus || update.isPending}
                         onClick={() =>
-                          save({ status: nextStatus }, `Order marked ${statusMeta(nextStatus).label.toLowerCase()}`)
+                          save({ status: nextStatus }, `Order marked ${statusMeta(nextStatus, method).label.toLowerCase()}`)
                         }
                       >
                         {update.isPending && <Spinner data-icon="inline-start" />}
@@ -395,8 +401,9 @@ export default function OrderDetailPage() {
                   )}
                 </Field>
 
-                <Separator />
+                {!isPickup && <Separator />}
 
+                {!isPickup && (
                 <Field>
                   <FieldLabel htmlFor="tracking">Tracking number</FieldLabel>
                   <Input
@@ -417,9 +424,12 @@ export default function OrderDetailPage() {
                     Save tracking
                   </Button>
                 </Field>
+                )}
               </FieldGroup>
             </CardContent>
           </Card>
+
+          <DeliveryDetails order={order} />
 
           <Card>
             <CardHeader>

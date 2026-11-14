@@ -79,24 +79,61 @@ export const useBestSellers = (limit = 4) =>
 // TanStack Query Hook - Delivery rate for a destination state (014).
 // A quote for display only: create-order resolves the fee again from the
 // order's state, so a tampered client can't ship to Sokoto at Lagos rates.
-export const useShippingQuote = (state) => {
-  const query = useQuery({
-    queryKey: ['shipping-quote', state],
-    enabled: Boolean(state),
+// TanStack Query Hook - Delivery choices (028): pickup points and, while area
+// pricing is on, the priced areas grouped by city.
+export const useDeliveryOptions = () =>
+  useQuery({
+    queryKey: ['delivery-options'],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/shop/shipping-quote?state=${encodeURIComponent(state)}`
-      )
+      const response = await fetch('/api/shop/delivery-options')
       if (!response.ok) {
-        throw new Error('Failed to quote shipping')
+        throw new Error('Failed to load delivery options')
       }
       return (await response.json()).data
     },
     staleTime: 5 * 60 * 1000,
   })
 
-  return query
-}
+// TanStack Query Hook - Delivery quote for this cart (028).
+// The fee depends on the order's weight, so the cart lines are part of the
+// key. A quote is display-only: create-order works it out again.
+//   input: { items: [{ id, quantity }], method, pickupPointId, state, areaKey, city }
+//   enabled: false skips the request (nothing chosen yet).
+export const useDeliveryQuote = (input, { enabled = true } = {}) =>
+  useQuery({
+    queryKey: [
+      'delivery-quote',
+      input.method,
+      input.pickupPointId || '',
+      input.state || '',
+      input.areaKey || '',
+      input.city || '',
+      (input.items || []).map((i) => `${i.id}:${i.quantity}`).sort().join('|'),
+    ],
+    enabled: enabled && (input.items || []).length > 0,
+    queryFn: async () => {
+      const response = await fetch('/api/shop/delivery-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: input.items.map((i) => ({ id: i.id, quantity: i.quantity })),
+          method: input.method,
+          pickupPointId: input.pickupPointId || null,
+          state: input.state || null,
+          areaKey: input.areaKey || '',
+          city: input.city || null,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to work out delivery')
+      }
+      return (await response.json()).data
+    },
+    staleTime: 60 * 1000,
+    // Keep showing the last quote while the next one loads, so the summary
+    // doesn't flash empty each time the area or quantity changes.
+    placeholderData: (previous) => previous,
+  })
 
 // TanStack Query Hook - Live promotions for a placement.
 // Returns the highest-priority (lowest sort_order) banner, or null.

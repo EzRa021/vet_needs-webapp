@@ -3,7 +3,12 @@ import { getStaffUser } from '@/lib/auth/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { parseAdminBody, OrderUpdateSchema } from '@/lib/validation/admin'
 import { sendEmail } from '@/lib/email/send'
-import { orderShippedEmail, orderDeliveredEmail } from '@/lib/email/templates'
+import {
+  orderShippedEmail,
+  orderDeliveredEmail,
+  orderReadyForPickupEmail,
+  orderCollectedEmail,
+} from '@/lib/email/templates'
 import { ALLOWED_TRANSITIONS, SETTABLE_STATUSES } from '@/lib/order-status'
 
 // Statuses worth emailing about. 'processing' isn't — "we're packing it" is
@@ -11,6 +16,11 @@ import { ALLOWED_TRANSITIONS, SETTABLE_STATUSES } from '@/lib/order-status'
 const EMAIL_ON_STATUS = {
   shipped: orderShippedEmail,
   delivered: orderDeliveredEmail,
+}
+// The same two statuses, in pickup words (028).
+const PICKUP_EMAIL_ON_STATUS = {
+  shipped: orderReadyForPickupEmail,
+  delivered: orderCollectedEmail,
 }
 
 // Statuses staff may set by hand, and from where — shared with the admin UI
@@ -168,10 +178,11 @@ export async function PATCH(request, { params }) {
     // Tell the customer, but only on a real transition INTO shipped/delivered.
     // `current.status !== data.status` matters: staff editing a tracking number
     // on an already-shipped order must not re-send "your order is on its way".
-    if (patch.status && current.status !== data.status && EMAIL_ON_STATUS[data.status]) {
+    const emailFor = (data.fulfilment_method === 'pickup' ? PICKUP_EMAIL_ON_STATUS : EMAIL_ON_STATUS)[data.status]
+    if (patch.status && current.status !== data.status && emailFor) {
       try {
         if (data.email) {
-          const { subject, html, text } = EMAIL_ON_STATUS[data.status](data)
+          const { subject, html, text } = emailFor(data)
           await sendEmail({ to: data.email, subject, html, text })
         }
       } catch (e) {

@@ -3,6 +3,7 @@ import {
   Clock3,
   PackageCheck,
   PackageOpen,
+  Store,
   Truck,
   Undo2,
   XCircle,
@@ -24,11 +25,15 @@ export const STATUS_STYLE = {
   refunded: { icon: Undo2, tint: "border-border bg-muted", hue: "text-muted-foreground", bar: "bg-muted-foreground" },
 }
 
-export const statusStyle = (status) => STATUS_STYLE[status] || STATUS_STYLE.refunded
+// A pickup waiting at the store isn't on a truck (028).
+export const statusStyle = (status, method) => {
+  const style = STATUS_STYLE[status] || STATUS_STYLE.refunded
+  return method === "pickup" && status === "shipped" ? { ...style, icon: Store } : style
+}
 
-export function OrderStatusBadge({ status, className, size = "sm" }) {
-  const meta = statusMeta(status)
-  const style = statusStyle(status)
+export function OrderStatusBadge({ status, method, className, size = "sm" }) {
+  const meta = statusMeta(status, method)
+  const style = statusStyle(status, method)
   const Icon = style.icon
   return (
     <span

@@ -14,6 +14,8 @@ const EDITABLE = {
   support_email: { type: 'string', label: 'Support email' },
   support_phone: { type: 'string', label: 'Support phone' },
   free_shipping_threshold: { type: 'number', label: 'Free shipping over', nullable: true },
+  // 028: switched from the Delivery page, once areas have prices.
+  area_pricing_enabled: { type: 'boolean', label: 'Area pricing' },
   // Private (never is_public): who gets new-order emails. Read by
   // lib/email/staff-alerts.js with the service role.
   order_alert_email: { type: 'emails', label: 'Order alert email' },
@@ -82,6 +84,17 @@ export async function PATCH(request) {
           )
         }
         value = unique.join(', ')
+      } else if (spec.type === 'boolean') {
+        // The Delivery page sends a boolean; the Settings page round-trips
+        // every row through a text field and sends "true"/"false".
+        if (raw === true || raw === 'true') value = true
+        else if (raw === false || raw === 'false') value = false
+        else {
+          return NextResponse.json(
+            { error: `${spec.label} must be on or off.` },
+            { status: 400 }
+          )
+        }
       } else if (spec.type === 'number') {
         if ((raw === '' || raw === null) && spec.nullable) {
           value = null

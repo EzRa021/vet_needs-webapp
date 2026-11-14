@@ -3,7 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse, after } from 'next/server'
 import { sendNewOrderAlert } from '@/lib/email/staff-alerts'
 import { calcTotals } from '@/lib/pricing'
-import { resolveShipping } from '@/lib/shipping'
+import { quoteDelivery } from '@/lib/delivery-server'
+import { cleanLocation, isUuid, newPickupCode, parseAreaKey } from '@/lib/delivery'
 import { allow, TOO_MANY } from '@/lib/rate-limit'
 
 // POST /api/checkout/create-order - Create a new order
@@ -35,7 +36,9 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { items, shippingInfo, orderNotes, couponCode, idempotencyKey } = body
+    const { items, shippingInfo, delivery, orderNotes, couponCode, idempotencyKey } = body
+    // Delivery to an address, or collection from a pickup point (028).
+    const method = delivery?.method === 'pickup' ? 'pickup' : 'delivery'
 
     // Idempotency key: optional, but when present it makes a repeated submit
     // (double-click, retry, refresh) return the original order rather than
@@ -81,8 +84,12 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Too many items' }, { status: 400 })
     }
 
-    // Validate shipping info
-    const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state']
+    // Validate shipping info. A pickup has no address to deliver to — only
+    // who's collecting and how to reach them.
+    const required =
+      method === 'pickup'
+        ? ['firstName', 'lastName', 'email', 'phone']
+        : ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state']
     if (!shippingInfo || required.some((f) => !shippingInfo[f] || typeof shippingInfo[f] !== 'string')) {
       return NextResponse.json({ error: 'Missing required shipping information' }, { status: 400 })
     }
@@ -113,7 +120,7 @@ export async function POST(request) {
     const ids = requested.map((i) => i.id)
     const { data: dbItems, error: itemsError } = await supabase
       .from('items')
-      .select('id, name, price, stock, unit_type, vat_enabled, vat_rate, vat_inclusive')
+      .select('id, name, price, stock, unit_type, weight_grams, vat_enabled, vat_rate, vat_inclusive')
       .in('id', ids)
 
     if (itemsError) {
@@ -123,6 +130,9 @@ export async function POST(request) {
 
     const byId = new Map((dbItems || []).map((i) => [i.id, i]))
     const orderItems = []
+    // Catalogue weights for delivery pricing (028). Not stored on the line —
+    // the order keeps the total in its delivery snapshot instead.
+    const weightLines = []
     for (const { id, quantity } of requested) {
       const dbItem = byId.get(id)
       if (!dbItem) {
@@ -141,6 +151,12 @@ export async function POST(request) {
           { status: 409 }
         )
       }
+      weightLines.push({
+        name: dbItem.name,
+        quantity,
+        unit_type: dbItem.unit_type,
+        weight_grams: dbItem.weight_grams,
+      })
       orderItems.push({
         id: dbItem.id,
         name: dbItem.name,
@@ -191,18 +207,98 @@ export async function POST(request) {
       discount = Number(result.discount) || 0
     }
 
-    // Authoritative totals (NGN). The shipping fee is resolved server-side from
-    // the DESTINATION STATE (014) — never from the browser, which would let a
-    // customer quote themselves Lagos rates for a delivery to Sokoto.
-    const pricingConfig = await resolveShipping(shippingInfo.state)
-    const totals = calcTotals(orderItems, { discount, ...pricingConfig })
+    // Authoritative delivery fee (028), worked out server-side from the area or
+    // state, the pickup point, and the order's weight from the catalogue —
+    // never from the browser, which would let a customer quote themselves the
+    // Bodija price for twenty bags to Lagos.
+    const { areaId, unlistedCity } = parseAreaKey(delivery?.areaKey)
+    const quote = await quoteDelivery({
+      method,
+      pickupPointId: isUuid(delivery?.pickupPointId) ? delivery.pickupPointId : null,
+      state: shippingInfo.state || null,
+      areaId,
+      unlistedCity,
+      city: method === 'delivery' ? shippingInfo.city : null,
+      lines: weightLines,
+    })
+    if (!quote.ok) {
+      // The checkout shows the same reason before the button is pressed, so
+      // reaching here means the prices changed in between.
+      return NextResponse.json({ error: quote.reason }, { status: 400 })
+    }
 
-    const shippingAddress = `${shippingInfo.firstName} ${shippingInfo.lastName}
-${shippingInfo.address}${shippingInfo.address2 ? '\n' + shippingInfo.address2 : ''}
-${shippingInfo.city}, ${shippingInfo.state}${shippingInfo.zip ? ' ' + shippingInfo.zip : ''}
-${shippingInfo.country || 'NG'}
-Email: ${shippingInfo.email}
-Phone: ${shippingInfo.phone}`
+    const totals = calcTotals(orderItems, {
+      discount,
+      shippingFlat: quote.fee,
+      freeShippingOver: quote.freeOver,
+    })
+
+    const clip = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '')
+    const landmark = method === 'delivery' ? clip(shippingInfo.landmark, 200) : ''
+    // A picked area decides the city and state, so the address on the order
+    // can't say Oyo while the fee is a Lagos one.
+    const city = quote.area?.city || clip(shippingInfo.city, 80)
+    const state = quote.area?.state || clip(shippingInfo.state, 60)
+
+    // Kept in the fixed line layout parseShippingAddress() reads: name first,
+    // "City, State" just above the country, Email/Phone last.
+    const point = quote.pickupPoint
+    const shippingAddress =
+      method === 'pickup'
+        ? [
+            `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+            `Store pickup: ${point.name}`,
+            point.address,
+            `${point.city}, ${point.state}`,
+            'NG',
+            `Email: ${shippingInfo.email}`,
+            `Phone: ${shippingInfo.phone}`,
+          ].join('\n')
+        : [
+            `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+            shippingInfo.address,
+            shippingInfo.address2 || null,
+            landmark ? `Landmark: ${landmark}` : null,
+            quote.area ? `Area: ${quote.area.name}` : null,
+            `${city}, ${state}${shippingInfo.zip ? ' ' + shippingInfo.zip : ''}`,
+            shippingInfo.country || 'NG',
+            `Email: ${shippingInfo.email}`,
+            `Phone: ${shippingInfo.phone}`,
+          ]
+            .filter(Boolean)
+            .join('\n')
+
+    // How the fee was worked out, frozen on the order. Staff see it on the
+    // order page; editing prices later never rewrites it.
+    const deliverySnapshot = {
+      method,
+      weight_kg: quote.weightKg,
+      ...(quote.missingWeight.length ? { missing_weight: quote.missingWeight.slice(0, 20) } : {}),
+      band: quote.band,
+      zone: quote.zone,
+      area: quote.area,
+      matched_by: quote.matchedBy,
+      estimate: quote.estimate,
+      ...(method === 'delivery'
+        ? {
+            landmark: landmark || null,
+            location: cleanLocation(delivery?.location),
+            ...(unlistedCity && !quote.area ? { unlisted_city: clip(unlistedCity, 80) } : {}),
+          }
+        : {
+            pickup_point: {
+              id: point.id,
+              name: point.name,
+              address: point.address,
+              city: point.city,
+              state: point.state,
+              phone: point.phone,
+              hours: point.hours,
+              map_url: point.map_url,
+              instructions: point.instructions,
+            },
+          }),
+    }
 
     // A signed-in customer is identified by their session; a guest by the email
     // they typed. Note the account's email wins over anything in the body — a
@@ -225,6 +321,10 @@ Phone: ${shippingInfo.phone}`
       total_amount: totals.total,
       status: 'pending', // pending, paid, delivered, canceled
       shipping_address: shippingAddress,
+      fulfilment_method: method,
+      delivery: deliverySnapshot,
+      // What the customer shows at the counter. Delivery orders have none.
+      pickup_code: method === 'pickup' ? newPickupCode() : null,
       order_items: orderItems,
       notes: typeof orderNotes === 'string' ? orderNotes.slice(0, 2000) : null,
       idempotency_key: idemKey,

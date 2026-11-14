@@ -56,6 +56,11 @@ function buildPayload(body) {
   num('vat_rate', { max: 100 })
   num('stock')
   num('low_stock_threshold')
+  // Grams per piece (028). An integer column, so round what the form sends.
+  num('weight_grams', { max: 1_000_000 })
+  if (out.weight_grams !== undefined && out.weight_grams !== null) {
+    out.weight_grams = Math.round(out.weight_grams)
+  }
 
   bool('vat_enabled')
   bool('vat_inclusive')

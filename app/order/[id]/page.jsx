@@ -17,6 +17,8 @@ import { createClient } from "@/lib/supabase/client"
 import { formatNaira } from "@/lib/pricing"
 import { formatQuantity } from "@/lib/units"
 import { statusMeta } from "@/lib/order-status"
+import { pickupCodeVisible } from "@/lib/delivery"
+import PickupPointCard from "@/components/pickup-point-card"
 import { LEGAL } from "@/lib/legal"
 
 // Guest order tracking: /order/<id>?token=<guest_token>
@@ -127,7 +129,8 @@ function GuestOrderContent() {
   }
 
   const items = Array.isArray(order.order_items) ? order.order_items : []
-  const meta = statusMeta(order.status)
+  const meta = statusMeta(order.status, order.fulfilment_method)
+  const isPickup = order.fulfilment_method === "pickup"
 
   return (
     <Shell>
@@ -152,8 +155,14 @@ function GuestOrderContent() {
 
       <Card className="mb-6">
         <CardContent className="space-y-4 p-5">
-          <FulfilmentTimeline status={order.status} />
-          <p className="text-center text-sm text-muted-foreground">{meta.description}</p>
+          <FulfilmentTimeline status={order.status} method={order.fulfilment_method} />
+          <p className="text-center text-sm text-muted-foreground">{meta.customerUpdate || meta.description}</p>
+          {isPickup && (
+            <PickupPointCard
+              point={order.delivery?.pickup_point}
+              code={pickupCodeVisible(order) ? order.pickup_code : null}
+            />
+          )}
           {order.tracking_number && (
             <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
               <Truck className="size-4 shrink-0 text-primary" />
@@ -205,7 +214,7 @@ function GuestOrderContent() {
             )}
             {order.shipping_fee != null && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Shipping</span>
+                <span className="text-muted-foreground">{isPickup ? "Pickup" : "Delivery"}</span>
                 <span className="tabular-nums">
                   {Number(order.shipping_fee) === 0 ? "Free" : formatNaira(order.shipping_fee)}
                 </span>
@@ -227,7 +236,7 @@ function GuestOrderContent() {
             <>
               <Separator />
               <div>
-                <p className="mb-1 text-sm font-medium">Delivering to</p>
+                <p className="mb-1 text-sm font-medium">{isPickup ? "Collecting" : "Delivering to"}</p>
                 <p className="whitespace-pre-line text-sm text-muted-foreground">
                   {order.shipping_address}
                 </p>
