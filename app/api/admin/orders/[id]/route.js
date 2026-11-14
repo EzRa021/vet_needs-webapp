@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { parseAdminBody, OrderUpdateSchema } from '@/lib/validation/admin'
 import { sendEmail } from '@/lib/email/send'
 import { orderShippedEmail, orderDeliveredEmail } from '@/lib/email/templates'
@@ -42,7 +43,9 @@ export async function GET(request, { params }) {
   try {
     const { id } = await params
 
-    const { data: order, error } = await supabase
+    // Service role: select('*') includes admin_notes, which 027 hides from the
+    // client roles. Staff-gated above.
+    const { data: order, error } = await createAdminClient()
       .from('orders')
       .select('*')
       .eq('id', id)
@@ -94,7 +97,10 @@ export async function PATCH(request, { params }) {
     )
     if (response) return response
 
-    const { data: current, error: readError } = await supabase
+    // Service role for the read and the write: the update returns the whole
+    // row, admin_notes included (hidden from client roles by 027).
+    const admin = createAdminClient()
+    const { data: current, error: readError } = await admin
       .from('orders')
       .select('status')
       .eq('id', id)
@@ -148,7 +154,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from('orders')
       .update(patch)
       .eq('id', id)

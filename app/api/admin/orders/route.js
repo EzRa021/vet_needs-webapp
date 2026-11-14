@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ORDER_STATUSES } from '@/lib/order-status'
 import { ORDER_SORTS, applyOrderFilters, readOrderFilters } from '@/lib/order-filters'
 
@@ -46,7 +47,10 @@ export async function GET(request) {
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit')) || 20, 1), 100)
     const offset = (page - 1) * limit
 
-    let query = supabase.from('orders').select(LIST_COLUMNS, { count: 'exact' })
+    // Service role for the read: admin_notes is hidden from the client roles
+    // (027), and the expandable row shows it. getStaffUser() above is the gate.
+    const admin = createAdminClient()
+    let query = admin.from('orders').select(LIST_COLUMNS, { count: 'exact' })
     query = applyOrderFilters(query, filters)
     if (status !== 'all' && ORDER_STATUSES.includes(status)) {
       query = query.eq('status', status)

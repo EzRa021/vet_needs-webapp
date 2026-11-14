@@ -19,19 +19,28 @@ grant usage on schema public to anon, authenticated, service_role;
 grant select, insert, update, delete on all tables in schema public to anon, authenticated, service_role;
 grant usage, select, update on all sequences in schema public to anon, authenticated, service_role;
 
--- The blanket grant above re-adds table-wide SELECT on items, which would
--- undo 023. Same block as 023: every column except the hidden ones.
+-- The blanket grant above re-adds table-wide SELECT, which would undo the
+-- column restrictions in 023 (items) and 027 (orders, refund_requests).
+-- Same rule as those migrations: every column except the hidden ones.
 do $$
 declare
-  hidden constant text[] := array['cost_price', 'pos_external_id', 'pos_source'];
+  t record;
   visible text;
 begin
-  select string_agg(quote_ident(column_name), ', ' order by ordinal_position)
-    into visible
-    from information_schema.columns
-   where table_schema = 'public' and table_name = 'items' and column_name <> all (hidden);
-  revoke select on public.items from anon, authenticated;
-  execute format('grant select (%s) on public.items to anon, authenticated', visible);
+  for t in
+    select * from (values
+      ('items', array['cost_price', 'pos_external_id', 'pos_source']),
+      ('orders', array['admin_notes']),
+      ('refund_requests', array['admin_notes', 'reviewed_by'])
+    ) as v(tbl, hidden)
+  loop
+    select string_agg(quote_ident(column_name), ', ' order by ordinal_position)
+      into visible
+      from information_schema.columns
+     where table_schema = 'public' and table_name = t.tbl and column_name <> all (t.hidden);
+    execute format('revoke select on public.%I from anon, authenticated', t.tbl);
+    execute format('grant select (%s) on public.%I to anon, authenticated', visible, t.tbl);
+  end loop;
 end
 $$;
 

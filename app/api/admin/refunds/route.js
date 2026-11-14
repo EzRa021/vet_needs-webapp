@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getStaffUser } from '@/lib/auth/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // GET /api/admin/refunds?status=requested
 export async function GET(request) {
@@ -9,11 +10,12 @@ export async function GET(request) {
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
-    const { supabase } = auth
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'all'
 
-    let query = supabase
+    // Service role: admin_notes is hidden from the client roles (027).
+    // getStaffUser() above is the gate.
+    let query = createAdminClient()
       .from('refund_requests')
       .select(
         `id, order_id, email, reason, details, status, requested_amount,
