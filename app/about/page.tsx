@@ -16,7 +16,7 @@ const IMG = "/images"
 export const metadata = {
   title: "About Us",
   description:
-    "VetNeeds is a pet food and pet care shop in Ibadan: dog and cat food, fresh-frozen meat, health products and accessories, delivered to your door or ready to collect.",
+    "Jvigor is a pet food and pet care shop in Ibadan: dog and cat food, fresh-frozen meat, health products and accessories, delivered to your door or ready to collect.",
 }
 
 const VALUES = [
@@ -51,7 +51,7 @@ export default function AboutPage() {
               Everything your pet needs, <span className="text-primary">right here in Ibadan</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              VetNeeds is a pet food and pet care shop. We stock good food,
+              Jvigor is a pet food and pet care shop. We stock good food,
               health products and everyday essentials for dogs, cats and other
               pets, and get them to you the way that suits you: to your door,
               or ready at the store.

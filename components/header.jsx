@@ -136,10 +136,10 @@ export default function Header() {
           {/* Main row */}
           <div className="flex h-20 items-center justify-between gap-4">
             {/* Logo — grain/wheat mark */}
-            <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="VetNeeds home">
+            <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="Jvigor home">
               <BrandLogo size={44} priority className="shadow-sm ring-2 ring-earth/40" />
               <div className="flex flex-col leading-none">
-                <span className="font-display text-xl font-extrabold tracking-tight">VetNeeds</span>
+                <span className="font-display text-xl font-extrabold tracking-tight">Jvigor</span>
                 <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   Pet Food &amp; Care
                 </span>

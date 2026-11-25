@@ -91,7 +91,7 @@ function StoreForm({ store, onDone }) {
         )}
         <Field>
           <FieldLabel htmlFor="store-name">Name</FieldLabel>
-          <Input id="store-name" value={form.name} onChange={set("name")} placeholder="e.g. VetNeeds Bodija" maxLength={80} />
+          <Input id="store-name" value={form.name} onChange={set("name")} placeholder="e.g. Jvigor Bodija" maxLength={80} />
         </Field>
         <Field>
           <FieldLabel htmlFor="store-address">Address</FieldLabel>

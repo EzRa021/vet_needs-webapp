@@ -32,7 +32,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         <div className="relative flex h-full flex-col justify-between p-12 text-primary-foreground">
           <Link href="/" className="flex items-center gap-2.5">
             <BrandLogo size={40} className="rounded-xl" />
-            <span className="font-display text-xl font-bold">VetNeeds</span>
+            <span className="font-display text-xl font-bold">Jvigor</span>
           </Link>
 
           <div className="space-y-6">
@@ -67,7 +67,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
           {/* Mobile brand mark */}
           <Link href="/" className="mb-8 flex items-center justify-center gap-2.5 lg:hidden">
             <BrandLogo size={40} className="rounded-xl" />
-            <span className="font-display text-xl font-bold">VetNeeds</span>
+            <span className="font-display text-xl font-bold">Jvigor</span>
           </Link>
 
           <div className="mb-6 text-center lg:text-left">

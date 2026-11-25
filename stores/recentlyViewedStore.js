@@ -28,6 +28,7 @@ export const useRecentlyViewedStore = create(
 
       clear: () => set({ ids: [] }),
     }),
+    // Old shop name kept on purpose: renaming the key forgets every visitor's history.
     { name: 'vetneeds-recently-viewed' }
   )
 )

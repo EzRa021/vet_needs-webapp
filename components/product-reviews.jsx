@@ -178,7 +178,7 @@ function ReviewCard({ review, isMine, itemId, onEdit }) {
 
       <p className="text-sm text-muted-foreground">
         <span className="font-medium text-foreground">
-          {review.author_name || "VetNeeds customer"}
+          {review.author_name || "Jvigor customer"}
         </span>
         {isMine && " (you)"} · {formatDate(review.created_at)}
       </p>

@@ -92,7 +92,7 @@ export default function AdminSidebar() {
               <Link href="/admin">
                 <BrandLogo size={32} className="rounded-lg" />
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-display font-bold">VetNeeds</span>
+                  <span className="font-display font-bold">Jvigor</span>
                   <span className="text-xs text-muted-foreground">Admin</span>
                 </div>
               </Link>

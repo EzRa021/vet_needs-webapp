@@ -178,7 +178,9 @@ export const useCartStore = create(
         calcTotals(get().items.filter((i) => !i.unavailable), opts),
     }),
     {
-      name: 'vetneeds-cart-storage', // localStorage key
+      // localStorage key. Keeps the shop's old name on purpose: renaming it
+      // would empty every returning customer's cart.
+      name: 'vetneeds-cart-storage',
     }
   )
 )

@@ -4,7 +4,7 @@ import { LEGAL } from "@/lib/legal"
 export const metadata = {
   title: "Privacy Policy",
   description:
-    "How VetNeeds collects, uses and protects your personal data, and your rights under the Nigeria Data Protection Act.",
+    "How Jvigor collects, uses and protects your personal data, and your rights under the Nigeria Data Protection Act.",
 }
 
 // Written against what the app ACTUALLY stores (profiles, orders, reviews,

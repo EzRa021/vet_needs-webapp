@@ -132,7 +132,7 @@ export default function AdminInventoryPage() {
 
   // The sheet you take to the supplier.
   const exportReorder = () =>
-    downloadCsv(`vetneeds-reorder-${stamp()}.csv`, reorder, [
+    downloadCsv(`jvigor-reorder-${stamp()}.csv`, reorder, [
       { key: "sku", label: "SKU" },
       { key: "name", label: "Product" },
       { key: "category", label: "Category" },
@@ -146,7 +146,7 @@ export default function AdminInventoryPage() {
     ])
 
   const exportValuation = () =>
-    downloadCsv(`vetneeds-stock-valuation-${stamp()}.csv`, visible, [
+    downloadCsv(`jvigor-stock-valuation-${stamp()}.csv`, visible, [
       { key: "sku", label: "SKU" },
       { key: "name", label: "Product" },
       { key: "category", label: "Category" },

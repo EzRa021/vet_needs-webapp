@@ -4,14 +4,14 @@
 // beats retyping a URL.
 export default function manifest() {
   return {
-    name: 'VetNeeds — Pet Food & Pet Care in Ibadan',
-    short_name: 'VetNeeds',
+    name: 'Jvigor — Pet Food & Pet Care in Ibadan',
+    short_name: 'Jvigor',
     description:
       'Dog and cat food, fresh-frozen meat, pet health products and accessories — delivered to your door in Ibadan or ready to collect.',
     start_url: '/',
     // standalone = opens without browser chrome, like a native app.
     display: 'standalone',
-    // Cool page bg / VetNeeds blue — the same tokens as the site, so the
+    // Cool page bg / Jvigor blue — the same tokens as the site, so the
     // splash and status bar match the shop rather than flashing white.
     background_color: '#F8FAFC',
     theme_color: '#0077C7',

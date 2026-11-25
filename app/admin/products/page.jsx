@@ -274,7 +274,7 @@ function AdminProductsPageContent() {
     setExporting(true)
     try {
       const rows = await fetchAllAdminProducts({ ...filters, page: undefined, limit: undefined })
-      downloadCsv(`vetneeds-products-${new Date().toISOString().slice(0, 10)}.csv`, rows, CSV_COLUMNS)
+      downloadCsv(`jvigor-products-${new Date().toISOString().slice(0, 10)}.csv`, rows, CSV_COLUMNS)
       toast({ title: `Exported ${rows.length} product${rows.length === 1 ? "" : "s"}` })
     } catch (err) {
       toast({ title: "Export failed", description: err.message, variant: "destructive" })

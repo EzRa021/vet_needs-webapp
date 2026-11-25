@@ -262,7 +262,7 @@ export default function HomePage() {
             <div className="relative aspect-[854/807] w-full">
               <BrandImage
                 src={heroImage}
-                alt={hero?.title || "A cat, five dogs and a rabbit — the pets VetNeeds feeds and cares for"}
+                alt={hero?.title || "A cat, five dogs and a rabbit — the pets Jvigor feeds and cares for"}
                 fill
                 priority
                 className="object-contain drop-shadow-2xl"
@@ -613,7 +613,7 @@ export default function HomePage() {
             </Reveal>
             <RevealGroup className="grid gap-6 md:grid-cols-3" stagger={0.08}>
               {topReviews.map((review) => {
-                const name = review.author_name || "VetNeeds customer";
+                const name = review.author_name || "Jvigor customer";
                 return (
                   <RevealItem
                     key={review.id}

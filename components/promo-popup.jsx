@@ -12,6 +12,8 @@ import { usePromotion } from "@/stores/shopStore"
 // isn't marketing, it's harassment — and it's the reason people install
 // blockers. Two weeks is long enough that a "no" means something.
 const SNOOZE_DAYS = 14
+// Old shop name kept on purpose: a new key would re-show the popup to everyone
+// who already dismissed it.
 const KEY = "vetneeds-popup-dismissed"
 
 // Long enough that it doesn't land on top of someone still reading the hero,

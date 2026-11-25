@@ -41,7 +41,7 @@ const SUPPORT_LINKS = [
 
 export default function Footer() {
   const { toast } = useToast()
-  const whatsapp = whatsappLink("Hi VetNeeds — I have a question about")
+  const whatsapp = whatsappLink("Hi Jvigor — I have a question about")
   const [email, setEmail] = useState("")
   const [subscribing, setSubscribing] = useState(false)
   const [honeypot, setHoneypot] = useState("") // bots fill this; humans can't see it
@@ -136,9 +136,9 @@ export default function Footer() {
       <div className="container px-4 py-12 md:px-6">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
           <div className="col-span-2 space-y-4 lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5" aria-label="VetNeeds home">
+            <Link href="/" className="flex items-center gap-2.5" aria-label="Jvigor home">
               <BrandLogo size={40} className="rounded-xl" />
-              <span className="font-display text-xl font-bold">VetNeeds</span>
+              <span className="font-display text-xl font-bold">Jvigor</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
               Food, health and everyday care for dogs, cats and other pets —
@@ -229,7 +229,7 @@ export default function Footer() {
       <div className="border-t">
         <div className="container flex flex-col items-center gap-4 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left md:px-6">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} VetNeeds. All rights reserved.
+            &copy; {new Date().getFullYear()} Jvigor. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="text-xs text-muted-foreground hover:text-primary">Privacy Policy</Link>

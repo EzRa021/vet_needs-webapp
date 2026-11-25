@@ -53,7 +53,7 @@ export default function AdminSubscribersPage() {
             disabled={subscribers.length === 0}
             onClick={() =>
               downloadCsv(
-                `vetneeds-subscribers-${new Date().toISOString().slice(0, 10)}.csv`,
+                `jvigor-subscribers-${new Date().toISOString().slice(0, 10)}.csv`,
                 subscribers,
                 [
                   { key: "email", label: "Email" },

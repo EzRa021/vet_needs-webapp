@@ -45,7 +45,7 @@ const EMPTY_FORM = {
 }
 
 export default function ContactPage() {
-  const whatsapp = whatsappLink("Hi VetNeeds — I have a question")
+  const whatsapp = whatsappLink("Hi Jvigor — I have a question")
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [sending, setSending] = useState(false)

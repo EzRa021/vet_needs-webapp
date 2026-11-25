@@ -1,4 +1,4 @@
-// VetNeeds service worker.
+// Jvigor service worker.
 //
 // DELIBERATELY MINIMAL. Its only jobs are (1) make the app installable — a PWA
 // needs a service worker with a fetch handler — and (2) show a branded page

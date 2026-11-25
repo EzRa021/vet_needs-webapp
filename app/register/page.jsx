@@ -128,7 +128,7 @@ export default function RegisterPage() {
     />
     <AuthShell
       title="Create your account"
-      subtitle="Join VetNeeds — pet food & care, delivered in Ibadan"
+      subtitle="Join Jvigor — pet food & care, delivered in Ibadan"
       footer={
         <>
           Already have an account?{" "}

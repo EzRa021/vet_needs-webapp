@@ -1,4 +1,4 @@
-# VetNeeds — Design System (MASTER)
+# Jvigor — Design System (MASTER)
 
 > **LOGIC:** When building a specific page, first check
 > `design-system/vetneeds/pages/[page-name].md`. If that file exists, its rules
@@ -7,7 +7,7 @@
 **Source of truth.** These are the rules the app is *actually* built on —
 verified against the code, not generated defaults.
 
-**Project:** VetNeeds — e-commerce storefront + admin dashboard selling **pet
+**Project:** Jvigor — e-commerce storefront + admin dashboard selling **pet
 food and pet care** (dry food, fresh-frozen meat, health products, accessories)
 in **Ibadan**, Nigeria. Door delivery within Ibadan, or pickup from a store.
 **Since 2026-11-24 the shop is pet only, for now:** poultry and fish feed are
@@ -32,7 +32,7 @@ HSL CSS variables in `app/globals.css`, consumed via Tailwind semantic tokens.
 
 | Role | Hex | Token | Use |
 |------|-----|-------|-----|
-| Primary — VetNeeds Blue | `#0077C7` | `--primary` | Brand, primary CTAs, active nav (white text 4.7:1) |
+| Primary — Jvigor Blue | `#0077C7` | `--primary` | Brand, primary CTAs, active nav (white text 4.7:1) |
 | Secondary — Warm Gold | `#C49A4A` | `--earth` | Discount badges, stars, cart count |
 | Info | `#0C8FCE` | `--info` | **Sparingly** — informational icons |
 | Success | `#4CAF50` | `--success` | Confirmations, healthy stock, trend up |

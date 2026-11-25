@@ -17,14 +17,14 @@ export const metadata: Metadata = {
   // WhatsApp and gets a blank card.
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL),
   title: {
-    default: "VetNeeds — Pet Food & Pet Care in Ibadan",
-    template: "%s | VetNeeds",
+    default: "Jvigor — Pet Food & Pet Care in Ibadan",
+    template: "%s | Jvigor",
   },
   description:
     "Dog and cat food, fresh-frozen meat, supplements and pet essentials. Delivered to your door in Ibadan or ready to collect from our store. Secure Paystack checkout.",
   openGraph: {
     type: "website",
-    siteName: "VetNeeds",
+    siteName: "Jvigor",
     locale: "en_NG",
   },
   // Pet only for now — poultry and farm feed are paused (030). What a pet
