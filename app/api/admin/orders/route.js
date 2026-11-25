@@ -32,8 +32,9 @@ const LIST_COLUMNS = [
   'pickup_code',
 ].join(', ')
 
-// GET /api/admin/orders?search=&status=&range=&sort=&page=&limit=
-//   range: today | 7d | 30d | all   (Lagos calendar days)
+// GET /api/admin/orders?search=&status=&range=&payment=&sort=&page=&limit=
+//   range:   today | 7d | 30d | all   (Lagos calendar days)
+//   payment: all | paid | unpaid     (paid = paid_at set, not refunded)
 //   sort:  newest | oldest | total_desc | total_asc   (default newest)
 export async function GET(request) {
   const auth = await getStaffUser()

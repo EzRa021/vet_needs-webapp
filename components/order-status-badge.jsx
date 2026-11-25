@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { FULFILMENT_FLOW, isTerminal, statusMeta } from "@/lib/order-status"
+import { FULFILMENT_FLOW, isTerminal, staffStatusLabel, statusMeta } from "@/lib/order-status"
 
 // Status reads by icon + words first; the tint only reinforces it (colour is
 // never the only signal). Text stays text-foreground so it clears 4.5:1 on the
@@ -31,8 +31,11 @@ export const statusStyle = (status, method) => {
   return method === "pickup" && status === "shipped" ? { ...style, icon: Store } : style
 }
 
-export function OrderStatusBadge({ status, method, className, size = "sm" }) {
+// audience="staff" uses the admin's words for a status (staffStatusLabel):
+// 'paid' reads "To process" there, "Paid" to customers.
+export function OrderStatusBadge({ status, method, className, size = "sm", audience = "customer" }) {
   const meta = statusMeta(status, method)
+  const label = audience === "staff" ? staffStatusLabel(status, method) : meta.label
   const style = statusStyle(status, method)
   const Icon = style.icon
   return (
@@ -45,7 +48,7 @@ export function OrderStatusBadge({ status, method, className, size = "sm" }) {
       )}
     >
       <Icon className={cn(size === "lg" ? "size-4" : "size-3.5", style.hue)} aria-hidden="true" />
-      {meta.label}
+      {label}
     </span>
   )
 }

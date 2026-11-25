@@ -552,7 +552,7 @@ export default function OrdersTable({
 
                   <TableCell>
                     <div className="flex flex-col gap-1.5">
-                      <OrderStatusBadge status={o.status} method={o.fulfilment_method} />
+                      <OrderStatusBadge status={o.status} method={o.fulfilment_method} audience="staff" />
                       <OrderProgressTicks status={o.status} />
                       <StatusAge order={o} now={now} />
                     </div>

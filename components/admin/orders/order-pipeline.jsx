@@ -5,21 +5,26 @@ import { ChevronRight, Inbox, TriangleAlert } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { FULFILMENT_FLOW, statusMeta } from "@/lib/order-status"
+import { FULFILMENT_FLOW, staffStatusLabel } from "@/lib/order-status"
 import { statusStyle } from "@/components/order-status-badge"
 
 const OFF_FLOW = ["canceled", "refunded"]
 
+// Staff words for each stage (staffStatusLabel): 'paid' is "To process" —
+// paid, not yet started. "How many have paid" is the Payment filter's job.
+const STAGE_HINTS = { paid: "Paid, not started yet" }
+
 function Segment({ status, count, active, onSelect, loading, note, compact }) {
   const isAll = status === "all"
   const Icon = isAll ? Inbox : statusStyle(status).icon
-  const label = isAll ? "All orders" : statusMeta(status).label
+  const label = isAll ? "All orders" : staffStatusLabel(status)
 
   return (
     <button
       type="button"
       onClick={() => onSelect(status)}
       aria-pressed={active}
+      title={STAGE_HINTS[status]}
       className={cn(
         "group flex h-full w-full min-w-[112px] flex-col justify-between gap-1 rounded-lg px-3 py-2 text-left outline-none transition-colors",
         "hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",

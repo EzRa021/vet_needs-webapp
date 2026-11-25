@@ -65,12 +65,18 @@ import { readStored, writeStored } from "@/lib/local-prefs"
 import { formatNaira } from "@/lib/pricing"
 import { canTransition, ORDER_STATUSES, orderRef, parseShippingAddress, statusMeta } from "@/lib/order-status"
 
-const DEFAULTS = { status: "all", search: "", range: "all", sort: "newest", page: 1, limit: 20 }
+const DEFAULTS = { status: "all", search: "", range: "all", payment: "all", sort: "newest", page: 1, limit: 20 }
 const RANGES = [
   { value: "all", label: "Any time" },
   { value: "today", label: "Today" },
   { value: "7d", label: "Last 7 days" },
   { value: "30d", label: "Last 30 days" },
+]
+// Paid or not, whatever stage the order is at (see lib/order-filters.js).
+const PAYMENTS = [
+  { value: "all", label: "Any payment" },
+  { value: "paid", label: "Paid" },
+  { value: "unpaid", label: "Not paid" },
 ]
 const SORTS = ["newest", "oldest", "total_desc", "total_asc"]
 const PAGE_SIZES = [20, 50, 100]
@@ -86,12 +92,14 @@ const DEFAULT_COLUMNS = { items: true, delivery: true, payment: true }
 function readFilters(params) {
   const status = params.get("status")
   const range = params.get("range")
+  const payment = params.get("payment")
   const sort = params.get("sort")
   const limit = Number(params.get("limit"))
   return {
     status: ORDER_STATUSES.includes(status) ? status : "all",
     search: (params.get("search") || "").slice(0, 100),
     range: RANGES.some((r) => r.value === range) ? range : "all",
+    payment: PAYMENTS.some((p) => p.value === payment) ? payment : "all",
     sort: SORTS.includes(sort) ? sort : "newest",
     page: Math.max(Number(params.get("page")) || 1, 1),
     limit: PAGE_SIZES.includes(limit) ? limit : DEFAULTS.limit,
@@ -193,7 +201,10 @@ function AdminOrdersPageContent() {
   // (network blip, or migration 024 not run yet), fall back to polling.
   const pollMs = connection === "live" ? false : POLL_MS
   const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(filters, { pollMs })
-  const summaryFilters = useMemo(() => ({ search: filters.search, range: filters.range }), [filters.search, filters.range])
+  const summaryFilters = useMemo(
+    () => ({ search: filters.search, range: filters.range, payment: filters.payment }),
+    [filters.search, filters.range, filters.payment]
+  )
   const summary = useAdminOrderSummary(summaryFilters, { pollMs })
 
   const update = useUpdateOrder()
@@ -201,7 +212,7 @@ function AdminOrdersPageContent() {
 
   const orders = data?.data || []
   const pagination = data?.pagination || { total: 0, page: 1, pages: 0, limit: filters.limit }
-  const hasFilters = filters.search || filters.status !== "all" || filters.range !== "all"
+  const hasFilters = filters.search || filters.status !== "all" || filters.range !== "all" || filters.payment !== "all"
 
   useEffect(() => {
     setColumns(readStored(COLUMNS_KEY, DEFAULT_COLUMNS))
@@ -243,7 +254,7 @@ function AdminOrdersPageContent() {
   // A selection only makes sense for the rows it was made on.
   useEffect(() => {
     setSelected(new Set())
-  }, [filters.status, filters.search, filters.range, filters.sort, filters.page, filters.limit])
+  }, [filters.status, filters.search, filters.range, filters.payment, filters.sort, filters.page, filters.limit])
 
   // "/" jumps to search, unless you're already typing somewhere.
   useEffect(() => {
@@ -356,7 +367,7 @@ function AdminOrdersPageContent() {
 
   const reset = () => {
     setSearchInput("")
-    setFilters({ status: "all", search: "", range: "all" })
+    setFilters({ status: "all", search: "", range: "all", payment: "all" })
   }
 
   const from = pagination.total ? (pagination.page - 1) * pagination.limit + 1 : 0
@@ -485,6 +496,21 @@ function AdminOrdersPageContent() {
                 />
                 <Kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 sm:inline-flex">/</Kbd>
               </div>
+
+              <Select value={filters.payment} onValueChange={(payment) => setFilters({ payment })}>
+                <SelectTrigger className="w-[150px]" aria-label="Payment">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {PAYMENTS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
 
               <Select value={filters.range} onValueChange={(range) => setFilters({ range })}>
                 <SelectTrigger className="w-[150px]" aria-label="Date range">

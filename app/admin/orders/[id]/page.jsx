@@ -201,6 +201,7 @@ export default function OrderDetailPage() {
               key={order.status}
               status={order.status}
               method={method}
+              audience="staff"
               className="motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95"
             />
             <LiveIndicator now={now} />

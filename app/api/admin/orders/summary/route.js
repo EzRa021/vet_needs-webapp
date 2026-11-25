@@ -6,7 +6,7 @@ import { applyOrderFilters, lagosStartOfToday, readOrderFilters } from '@/lib/or
 // A paid order that hasn't moved for this long is flagged as waiting.
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000
 
-// GET /api/admin/orders/summary?search=&range=
+// GET /api/admin/orders/summary?search=&range=&payment=
 //
 // Two things the Orders page header needs, and nothing it doesn't:
 //   counts — one per status over the same search + range as the table, so
