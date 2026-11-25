@@ -30,12 +30,16 @@ export async function GET(request) {
         .order('created_at', { ascending: false })
     }
 
+    // Newest columns first; a database that hasn't had 034/035 run yet just
+    // gets the older shape, so promotions never vanish over a migration.
     const BASE = 'id, title, subtitle, image_url, link_url, placement, sort_order'
-    let { data, error } = await run(`${BASE}, image_only`)
-    // Before 034 there's no image_only column: show every promotion the old
-    // way rather than none at all.
-    if (error && (error.code === '42703' || /image_only/.test(error.message || ''))) {
-      ;({ data, error } = await run(BASE))
+    const SHAPES = [`${BASE}, image_only, popup_repeat`, `${BASE}, image_only`, BASE]
+    let data = null
+    let error = null
+    for (const columns of SHAPES) {
+      ;({ data, error } = await run(columns))
+      const missingColumn = error && (error.code === '42703' || /image_only|popup_repeat/.test(error.message || ''))
+      if (!missingColumn) break
     }
 
     if (error) {

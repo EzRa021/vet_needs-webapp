@@ -8,40 +8,52 @@ import { Button } from "@/components/ui/button"
 import BrandImage from "@/components/brand-image"
 import { usePromotion } from "@/stores/shopStore"
 
-// How long a dismissal lasts. A popup you closed that returns on the next click
-// isn't marketing, it's harassment — and it's the reason people install
-// blockers. Two weeks is long enough that a "no" means something.
-const SNOOZE_DAYS = 14
+// How long a closed popup stays away, set per popup in the admin (035):
+//   visit  comes back on the next visit or refresh
+//   day    once a day (the default, and what older popups get)
+//   week   once a week
+// It used to be a fixed 14 days, which read as "the popup doesn't work":
+// close it once while checking it and it never came back in that browser.
+const SNOOZE_MS = { visit: 0, day: 86_400_000, week: 7 * 86_400_000 }
 // Old shop name kept on purpose: a new key would re-show the popup to everyone
 // who already dismissed it.
 const KEY = "vetneeds-popup-dismissed"
 
-// Long enough that it doesn't land on top of someone still reading the hero,
-// short enough to catch them before they navigate away.
-const DELAY_MS = 6000
+// Short: long enough for the page to settle, short enough that people see it
+// before they've moved on (6 s missed anyone who refreshed or clicked away).
+const DELAY_MS = 2000
 
-function dismissedRecently(id) {
+// A popup is "the same" only while it says the same thing. Changing its
+// picture, words or link makes it a new popup that everyone sees again.
+const versionOf = (p) => [p.id, p.image_url, p.title, p.subtitle, p.link_url].join("|")
+
+function dismissedRecently(promotion) {
+  const snooze = SNOOZE_MS[promotion.popup_repeat] ?? SNOOZE_MS.day
+  if (!snooze) return false
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return false
-    const seen = JSON.parse(raw)
-    const at = seen[id]
-    if (!at) return false
-    return Date.now() - at < SNOOZE_DAYS * 86400_000
+    const at = JSON.parse(raw)[versionOf(promotion)]
+    return Boolean(at) && Date.now() - at < snooze
   } catch {
-    // A corrupt/blocked localStorage must not mean "show it forever".
-    return true
+    // Storage blocked or corrupt: show it — the close button still works for
+    // this page, and a popup that can never appear is the bug being fixed.
+    return false
   }
 }
 
-function remember(id) {
+function remember(promotion) {
   try {
     const raw = localStorage.getItem(KEY)
     const seen = raw ? JSON.parse(raw) : {}
-    seen[id] = Date.now()
+    // Drop entries older than a week so the list can't grow forever.
+    for (const [k, at] of Object.entries(seen)) {
+      if (Date.now() - at > SNOOZE_MS.week) delete seen[k]
+    }
+    seen[versionOf(promotion)] = Date.now()
     localStorage.setItem(KEY, JSON.stringify(seen))
   } catch {
-    /* private mode — the session state below still hides it for this visit */
+    /* private mode — closing still hides it for this page */
   }
 }
 
@@ -54,11 +66,12 @@ export default function PromoPopup() {
 
   useEffect(() => {
     if (!promotion?.id) return
-    if (dismissedRecently(promotion.id)) return
+    if (dismissedRecently(promotion)) return
 
     const t = setTimeout(() => setOpen(true), DELAY_MS)
     return () => clearTimeout(t)
-  }, [promotion?.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promotion?.id, promotion && versionOf(promotion)])
 
   // Escape closes, like any other overlay. Skipping this is how a popup becomes
   // a trap for keyboard users.
@@ -71,10 +84,11 @@ export default function PromoPopup() {
 
   const close = () => {
     setOpen(false)
-    if (promotion?.id) remember(promotion.id)
+    if (promotion?.id) remember(promotion)
   }
 
   if (!open || !promotion) return null
+  const picture = Boolean(promotion.image_only && promotion.image_url)
 
   return (
     <div
@@ -89,7 +103,13 @@ export default function PromoPopup() {
         onClick={close}
       />
 
-      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border bg-card shadow-xl">
+      <div
+        className={
+          picture
+            ? "relative w-full max-w-md overflow-hidden rounded-2xl bg-card shadow-2xl"
+            : "relative w-full max-w-sm overflow-hidden rounded-2xl border bg-card shadow-xl"
+        }
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -97,28 +117,23 @@ export default function PromoPopup() {
           aria-label="Close"
           // Real hit area, top-right, always visible. The tiny greyed-out ✕ is
           // a dark pattern, not a style.
-          className="absolute right-2 top-2 z-10 size-9 rounded-full bg-card/80 backdrop-blur"
+          className="absolute right-2 top-2 z-10 size-10 rounded-full bg-card/90 text-foreground shadow-md backdrop-blur hover:bg-card"
         >
-          <X className="size-4" />
+          <X className="size-5" />
         </Button>
 
-        {/* Picture only (034): the picture is the whole message, so it's
-            shown whole and is itself the link; "No thanks" stays. */}
-        {promotion.image_only && promotion.image_url ? (
+        {/* Picture only (034): the popup IS the picture — whole, larger, and
+            itself the link. The × (and Escape, and clicking outside) close it. */}
+        {picture ? (
           <>
             <h2 id="promo-popup-title" className="sr-only">{promotion.title}</h2>
             {promotion.link_url ? (
               <Link href={promotion.link_url} onClick={close} className="block">
-                <BrandImage natural src={promotion.image_url} alt={promotion.title} sizes="384px" />
+                <BrandImage natural src={promotion.image_url} alt={promotion.title} sizes="(max-width: 480px) 100vw, 448px" priority />
               </Link>
             ) : (
-              <BrandImage natural src={promotion.image_url} alt={promotion.title} sizes="384px" />
+              <BrandImage natural src={promotion.image_url} alt={promotion.title} sizes="(max-width: 480px) 100vw, 448px" priority />
             )}
-            <div className="p-2 text-center">
-              <Button variant="ghost" size="sm" onClick={close}>
-                No thanks
-              </Button>
-            </div>
           </>
         ) : (
         <>

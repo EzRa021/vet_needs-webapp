@@ -17,6 +17,7 @@ function buildPayload(body) {
   if (PLACEMENTS.includes(body.placement)) out.placement = body.placement
   if (typeof body.is_active === 'boolean') out.is_active = body.is_active
   if (typeof body.image_only === 'boolean') out.image_only = body.image_only
+  if (['visit', 'day', 'week'].includes(body.popup_repeat)) out.popup_repeat = body.popup_repeat
   if (Number.isFinite(Number(body.sort_order))) out.sort_order = Number(body.sort_order)
 
   const date = (k, nullable) => {
@@ -38,6 +39,9 @@ function buildPayload(body) {
 // can act on, instead of "Could not find the 'image_only' column…".
 export function promotionSaveError(error) {
   const msg = String(error?.message || '')
+  if (/popup_repeat/.test(msg)) {
+    return 'Choosing how often the popup shows needs migration 035. Run it in the Supabase SQL editor, then save again.'
+  }
   if (error?.code === 'PGRST204' || /image_only/.test(msg)) {
     return 'The "Picture only" option needs migration 034. Run it in the Supabase SQL editor, then save again.'
   }

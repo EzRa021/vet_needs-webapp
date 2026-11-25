@@ -56,7 +56,7 @@ const PLACEMENTS = [
   { value: "home_tile", label: "Home tile", hint: "One of three small tiles under the slider: a picture, a short line and \"Shop now\". Needs a picture." },
   { value: "home_banner", label: "Home banner", hint: "A strip further down the home page" },
   { value: "shop_banner", label: "Shop banner", hint: "Above the product grid" },
-  { value: "popup", label: "Popup", hint: "Overlay shown on arrival" },
+  { value: "popup", label: "Popup", hint: "Appears over the page 2 seconds after someone arrives, on every page except the cart and checkout." },
 ]
 
 // What size of picture to make, per placement. Picture-only promotions (034)
@@ -76,6 +76,13 @@ const IMAGE_HINT = {
   popup: "Shown above your words.",
 }
 
+// How soon a closed popup comes back (035).
+const POPUP_REPEAT = [
+  { value: "visit", label: "Every visit", hint: "Shows on every visit, and again after a refresh, even if they closed it." },
+  { value: "day", label: "Once a day", hint: "After someone closes it, it comes back the next day." },
+  { value: "week", label: "Once a week", hint: "After someone closes it, it comes back a week later." },
+]
+
 const EMPTY = {
   title: "",
   subtitle: "",
@@ -83,6 +90,7 @@ const EMPTY = {
   link_url: "",
   placement: "home_hero",
   image_only: false,
+  popup_repeat: "day",
   sort_order: 0,
   starts_at: "",
   ends_at: "",
@@ -165,11 +173,15 @@ export default function AdminPromotionsPage() {
     try {
       // image_only is sent only when it's on (or being switched off), so
       // ordinary promotions keep saving before migration 034 has been run.
-      const { image_only, ...rest } = form
+      // Likewise popup_repeat (035): sent for popups only, and only when it's
+      // not the default — so saving keeps working until 035 has been run.
+      const { image_only, popup_repeat, ...rest } = form
+      const sendRepeat = rest.placement === "popup" && (popup_repeat !== "day" || editing?.popup_repeat)
       await save.mutateAsync({
         id: editing?.id,
         ...rest,
         ...(image_only || editing?.image_only ? { image_only } : {}),
+        ...(sendRepeat ? { popup_repeat } : {}),
         starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : undefined,
         ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
       })
@@ -270,6 +282,11 @@ export default function AdminPromotionsPage() {
                     <Badge variant={state.variant}>{state.label}</Badge>
                     <Badge variant="secondary">{placement?.label || p.placement}</Badge>
                     {p.image_only && <Badge variant="secondary">Picture only</Badge>}
+                    {p.placement === "popup" && (
+                      <Badge variant="secondary">
+                        {POPUP_REPEAT.find((r) => r.value === (p.popup_repeat || "day"))?.label}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <CardContent className="flex flex-col gap-3 p-4">
@@ -402,6 +419,30 @@ export default function AdminPromotionsPage() {
                   {PLACEMENTS.find((p) => p.value === form.placement)?.hint}
                 </FieldDescription>
               </Field>
+
+              {form.placement === "popup" && (
+                <Field>
+                  <FieldLabel htmlFor="pr-repeat">Show it again</FieldLabel>
+                  <Select value={form.popup_repeat} onValueChange={set("popup_repeat")}>
+                    <SelectTrigger id="pr-repeat">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {POPUP_REPEAT.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  <FieldDescription>
+                    {POPUP_REPEAT.find((r) => r.value === form.popup_repeat)?.hint} Changing the
+                    popup&apos;s picture, words or link shows it to everyone again.
+                  </FieldDescription>
+                </Field>
+              )}
 
               <Field data-invalid={error && form.image_only && !form.image_url ? true : undefined}>
                 <FieldLabel htmlFor="pr-img">{form.image_only ? "Banner picture" : "Picture"}</FieldLabel>
