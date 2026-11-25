@@ -1,6 +1,7 @@
 "use client"
 
-import { motion, useReducedMotion } from "framer-motion"
+import { useRef } from "react"
+import { motion, useInView, useReducedMotion } from "framer-motion"
 
 // Shared motion vocabulary for the storefront.
 //
@@ -98,6 +99,13 @@ export function RevealOnLoad({
  *
  * Stagger is deliberately small (60ms). Anything slower and the last card in a
  * row of eight arrives half a second after the first, which feels sluggish.
+ *
+ * Children added AFTER the group has appeared must still show. With
+ * `whileInView` they didn't: the group's in-view reveal had already fired, so
+ * a card mounted later stayed at opacity 0. Clearing a shop search turned one
+ * result into six and only the one stayed visible; the other five were on the
+ * page, invisible. Driving `animate` from useInView fixes it: once the group
+ * is "visible", every child mounted into it animates to "visible" too.
  */
 export function RevealGroup({
   children,
@@ -109,13 +117,15 @@ export function RevealGroup({
 }) {
   const reduce = useReducedMotion()
   const MotionTag = motion[as] || motion.div
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, amount })
 
   return (
     <MotionTag
+      ref={ref}
       className={className}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount }}
+      animate={inView ? "visible" : "hidden"}
       variants={{
         hidden: {},
         visible: {

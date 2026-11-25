@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { Search, Filter, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -59,9 +59,21 @@ const defaultSortFor = (search) => (search ? "relevance" : SHOP_DEFAULTS.sortBy)
 // department/category pickers, since the page's own heading already says where
 // the shopper is.
 export default function ProductBrowser({ lockedCategoryId = null }) {
-  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+
+  // Writes the query string in the browser only. Everything on this page is
+  // read from the URL on the client, so the server has nothing to render for
+  // a filter change — yet router.replace() made a server round trip on every
+  // one and kept the OLD products on screen until it came back (0.6 s here,
+  // ~3 s on a slow mobile connection): clearing a search looked like it
+  // hadn't worked. Next.js syncs native history calls into useSearchParams
+  // with no request. replaceState, not pushState: 12 filter tweaks shouldn't
+  // mean 12 back-presses to leave the shop.
+  const writeUrl = (qs, { scroll = false } = {}) => {
+    window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname)
+    if (scroll) window.scrollTo({ top: 0, behavior: "smooth" })
+  }
 
   const locked = !!lockedCategoryId
 
@@ -175,13 +187,12 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
     // result set is meaningless against a new one, and often empty.
     if (resetPage && !("page" in patch)) next.delete("page")
 
-    const qs = next.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll })
+    writeUrl(next.toString(), { scroll })
   }
 
   const { data: departments } = useDepartments()
   const { data: categories, isLoading: categoriesLoading } = useCategories(filters.department)
-  const { data: itemsData, isLoading: itemsLoading } = useItems(filters)
+  const { data: itemsData, isLoading: itemsLoading, isPlaceholderData } = useItems(filters)
 
   const items = itemsData?.data || []
   const pagination = itemsData?.pagination || { total: 0, page: 1, pages: 0 }
@@ -214,7 +225,7 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
     setSearchInput("")
     // Facet keys are dynamic (attr.<whatever staff named it>), so they can't be
     // listed — drop every param and rebuild only what the page itself owns.
-    router.replace(pathname, { scroll: false })
+    writeUrl("")
   }
 
   const clearFacets = () => {
@@ -224,8 +235,7 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
         next.delete(key)
       }
     }
-    const qs = next.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    writeUrl(next.toString())
   }
 
   const facetsQuery = useFacets({
@@ -339,7 +349,16 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
             type="search"
             placeholder={locked ? "Search in this category..." : "Search products..."}
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value
+              setSearchInput(value)
+              // Emptying the box (backspace, the box's own ×) shows everything
+              // at once — no reason to wait out the typing debounce for that.
+              if (!value.trim() && filters.search) {
+                pushedSearch.current = ""
+                setParams({ search: "" })
+              }
+            }}
             className="flex-1"
           />
           <Button type="submit" aria-label="Search">
@@ -544,6 +563,12 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
               otherwise page 2 swaps in with no acknowledgement that anything
               changed. Stagger is tight (40ms) because a full grid of 12+ would
               otherwise take most of a second to finish arriving. */}
+          {/* While the next results load, the current ones stay but fade, so
+              a change never looks like it didn't take. */}
+          <div
+            aria-busy={isPlaceholderData || undefined}
+            className={`transition-opacity duration-200 ${isPlaceholderData ? "opacity-50" : ""}`}
+          >
           <RevealGroup
             key={pagination.page}
             className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4"
@@ -555,6 +580,7 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
               </RevealItem>
             ))}
           </RevealGroup>
+          </div>
 
           {pagination.pages > 1 && (
             <nav

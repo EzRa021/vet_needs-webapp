@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import ProductBrowser from "@/components/product-browser"
 import { useTaxonomy } from "@/stores/shopStore"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 // Walks the nested tree for the node AND its ancestors, so the breadcrumb can
 // show the real trail (Home / Shop / Pet / Pet Kibbles) instead of a flat guess.
@@ -31,8 +32,13 @@ function findTrail(nodes, id, trail = []) {
 export default function CategoryBrowser() {
   const { id } = useParams()
   const { data: tree, isLoading, isError } = useTaxonomy()
+  // The server never has the category tree, so it always sends the skeleton.
+  // On a return visit the browser does have it (saved from last time) and
+  // would draw the finished page on its first render — a hydration mismatch.
+  // Same skeleton until hydrated, then the saved tree shows at once.
+  const hydrated = useHydrated()
 
-  if (isLoading) {
+  if (!hydrated || isLoading) {
     return (
       <div className="container px-4 py-8 md:px-6 md:py-12">
         <Skeleton className="mb-2 h-4 w-48" />
