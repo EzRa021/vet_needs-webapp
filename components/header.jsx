@@ -60,6 +60,18 @@ const DEPARTMENT_ICONS = {
 
 const iconFor = (slug) => DEPARTMENT_ICONS[slug] || PawPrint
 
+// The header is a brand-blue → deep-blue gradient (header-* tokens in
+// globals.css), so everything on it is white. Ghost buttons' default hover is
+// a pale accent with dark text, which would flash light-on-blue; these keep
+// them white with a soft white wash instead.
+const ON_HEADER =
+  "text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground focus-visible:ring-header-foreground/60"
+const NAV_PILL = "rounded-full px-3 py-1.5 text-sm font-semibold transition-colors"
+const NAV_IDLE = "text-header-foreground hover:bg-header-foreground/10"
+// The current page: a white pill with deep-blue text — the one light thing in
+// the bar, so where you are is obvious.
+const NAV_ACTIVE = "bg-header-foreground text-header-to shadow-sm"
+
 export default function Header() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -115,7 +127,7 @@ export default function Header() {
   return (
     <>
       {/* Announcement strip — stencil label, scrolls away */}
-      <div className="bg-primary text-primary-foreground">
+      <div className="border-b border-header-foreground/10 bg-header-to text-header-foreground">
         <div className="container flex h-9 items-center justify-center gap-2 px-4 text-center text-xs font-semibold uppercase tracking-[0.15em] md:justify-between md:px-6">
           <span className="hidden items-center gap-2 md:flex">
             <Truck className="h-3.5 w-3.5" />
@@ -131,16 +143,16 @@ export default function Header() {
         </div>
       </div>
 
-      <header className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+      <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-header-from to-header-to text-header-foreground shadow-md">
         <div className="container mx-auto px-4 md:px-6">
           {/* Main row */}
           <div className="flex h-20 items-center justify-between gap-4">
             {/* Logo — grain/wheat mark */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="Jvigor home">
-              <BrandLogo size={44} priority className="shadow-sm ring-2 ring-earth/40" />
+              <BrandLogo size={44} priority className="shadow-md ring-2 ring-header-foreground/40" />
               <div className="flex flex-col leading-none">
                 <span className="font-display text-xl font-extrabold tracking-tight">Jvigor</span>
-                <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-header-foreground">
                   Pet Food &amp; Care
                 </span>
               </div>
@@ -149,17 +161,17 @@ export default function Header() {
             {/* Search — desktop */}
             <SearchAutocomplete
               className="hidden flex-1 md:block md:max-w-xl"
-              inputClassName="border-border/70 bg-secondary/60 focus:bg-background"
+              inputClassName="border-transparent bg-background text-foreground shadow-sm focus:bg-background"
             />
 
             {/* Right icons */}
             <div className="flex items-center gap-1.5">
-              <ThemeToggle className="hidden sm:inline-flex" />
+              <ThemeToggle className={`hidden sm:inline-flex ${ON_HEADER}`} />
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-full">
-                      <Avatar className="h-9 w-9">
+                    <Button variant="ghost" size="icon" className={`h-11 w-11 shrink-0 rounded-full ${ON_HEADER}`}>
+                      <Avatar className="h-9 w-9 ring-2 ring-header-foreground/50">
                         {/* Only render an image when there actually is one — a
                             placeholder src loads fine and would paint a blank
                             grey disc over the initials, which only show when
@@ -217,7 +229,7 @@ export default function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="ghost" size="sm" asChild className="h-11 rounded-full">
+                <Button variant="ghost" size="sm" asChild className={`h-11 rounded-full ${ON_HEADER}`}>
                   <Link href="/login" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     <span className="hidden sm:inline">Sign In</span>
@@ -231,7 +243,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="group relative hidden h-11 w-11 shrink-0 rounded-full sm:inline-flex"
+                  className={`group relative hidden h-11 w-11 shrink-0 rounded-full sm:inline-flex ${ON_HEADER}`}
                   asChild
                 >
                   <Link
@@ -240,7 +252,7 @@ export default function Header() {
                   >
                     <Heart className="h-5 w-5 transition-transform group-hover:scale-110" />
                     {wishlistCount > 0 && (
-                      <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground shadow">
+                      <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-header-foreground px-1 text-[11px] font-bold tabular-nums text-header-to shadow">
                         {wishlistCount > 99 ? "99+" : wishlistCount}
                       </span>
                     )}
@@ -248,11 +260,11 @@ export default function Header() {
                 </Button>
               )}
 
-              <Button variant="ghost" size="icon" className="group relative h-11 w-11 shrink-0 rounded-full" asChild>
+              <Button variant="ghost" size="icon" className={`group relative h-11 w-11 shrink-0 rounded-full ${ON_HEADER}`} asChild>
                 <Link href="/cart" aria-label={`Cart, ${cartCount} items`}>
                   <ShoppingCart className="h-5 w-5 transition-transform group-hover:scale-110" />
                   {cartCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-earth px-1 text-[11px] font-bold text-earth-foreground shadow">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-earth px-1 text-[11px] font-bold tabular-nums text-earth-foreground shadow">
                       {cartCount > 99 ? "99+" : cartCount}
                     </span>
                   )}
@@ -264,7 +276,7 @@ export default function Header() {
                   — otherwise it stays open over the page you just navigated to. */}
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-full lg:hidden">
+                  <Button variant="ghost" size="icon" className={`h-11 w-11 shrink-0 rounded-full lg:hidden ${ON_HEADER}`} aria-label="Menu">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
@@ -380,7 +392,7 @@ export default function Header() {
           </div>
 
           {/* Shelf nav — desktop */}
-          <nav className="hidden h-12 items-center gap-1 border-t border-border/60 lg:flex">
+          <nav className="hidden h-12 items-center gap-1 border-t border-header-foreground/15 lg:flex">
             {NAV_LINKS.slice(0, 2).map((link) => {
               const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href)
               return (
@@ -388,9 +400,7 @@ export default function Header() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary hover:text-primary"
-                  }`}
+                  className={`${NAV_PILL} ${active ? NAV_ACTIVE : NAV_IDLE}`}
                 >
                   {link.label}
                 </Link>
@@ -399,7 +409,7 @@ export default function Header() {
 
             {/* Mega-menu: departments as columns, their categories beneath */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-foreground outline-none transition-colors hover:bg-secondary hover:text-primary">
+              <DropdownMenuTrigger className={`group flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/60 data-[state=open]:bg-header-foreground/10 ${NAV_PILL} ${NAV_IDLE}`}>
                 Categories
                 <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
               </DropdownMenuTrigger>
@@ -454,9 +464,7 @@ export default function Header() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary hover:text-primary"
-                  }`}
+                  className={`${NAV_PILL} ${active ? NAV_ACTIVE : NAV_IDLE}`}
                 >
                   {link.label}
                 </Link>
@@ -474,11 +482,7 @@ export default function Header() {
                     key={dept.id}
                     href={`/shop/category/${dept.id}`}
                     aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-secondary hover:text-primary"
-                    }`}
+                    className={`flex items-center gap-1.5 ${NAV_PILL} font-medium ${active ? NAV_ACTIVE : NAV_IDLE}`}
                   >
                     <Icon className="h-4 w-4" />
                     {dept.name}

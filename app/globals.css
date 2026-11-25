@@ -61,6 +61,12 @@
     --sidebar-border: 210 22% 89%;
     --sidebar-ring: 204 100% 39%;
 
+    /* Storefront header: brand blue sweeping into deep navy, white on top.
+       White text is 4.7:1 on the lightest end (the brand blue itself). */
+    --header-from: 204 100% 39%;     /* #0077C7 */
+    --header-to: 216 76% 22%;        /* #0D2F63 deep blue */
+    --header-foreground: 0 0% 100%;
+
     --radius: 1rem;                  /* 16px cards */
   }
 
@@ -113,6 +119,11 @@
     --sidebar-accent-foreground: 210 20% 90%;
     --sidebar-border: 214 18% 20%;
     --sidebar-ring: 204 90% 56%;
+
+    /* Deeper in dark mode so the header doesn't glare over a navy page. */
+    --header-from: 204 100% 30%;     /* #00609A */
+    --header-to: 218 70% 12%;        /* #091A34 */
+    --header-foreground: 0 0% 100%;
   }
 }
 

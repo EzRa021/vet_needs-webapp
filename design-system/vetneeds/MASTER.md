@@ -53,6 +53,14 @@ carries the same hexes; the manifest and `global-error.tsx` do too.
 `public/logo.png` was recoloured to match; it still shows a rooster, sheep,
 cow and wheat from the agri days — a pet-only logo is the client's to commission.
 
+**Storefront header** (2026-11-25, client's request): a left-to-right gradient
+from brand blue to deep blue (`--header-from` `#0077C7` → `--header-to`
+`#0D2F63`; deeper in dark mode), white text and icons (`--header-foreground`),
+used through the Tailwind `header-*` colours. The announcement strip above it
+is solid `header-to`. The search box is a white pill on it; the current page
+is a white pill with deep-blue text; the wishlist badge is white (blue would
+vanish), the cart badge stays gold.
+
 **Rules**
 - Info blue is an accent, **not** a second brand colour. Never a CTA.
 - Never convey meaning by colour alone — pair with icon or text (WCAG).

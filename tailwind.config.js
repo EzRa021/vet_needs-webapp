@@ -36,6 +36,12 @@ module.exports = {
           foreground: "hsl(var(--info-foreground))",
         },
         "surface-2": "hsl(var(--surface-2))",
+        // Storefront header gradient (components/header.jsx).
+        header: {
+          from: "hsl(var(--header-from))",
+          to: "hsl(var(--header-to))",
+          foreground: "hsl(var(--header-foreground))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
