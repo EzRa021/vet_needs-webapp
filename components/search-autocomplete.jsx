@@ -184,7 +184,10 @@ export default function SearchAutocomplete({
         <div
           id={listId}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border bg-popover shadow-lg"
+          // text-popover-foreground: the panel sets its own text colour. It
+          // sits inside the blue header, whose text is white, and without
+          // this the product names inherited it — white on the white panel.
+          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border bg-popover text-popover-foreground shadow-lg"
         >
           {options.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
@@ -204,7 +207,7 @@ export default function SearchAutocomplete({
                   onClick={() => go(opt.href)}
                   className={cn(
                     "flex cursor-pointer items-center gap-3 px-3 py-2",
-                    active === i && "bg-accent"
+                    active === i && "bg-accent text-accent-foreground"
                   )}
                 >
                   <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted">

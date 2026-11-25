@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Search, Filter, X } from "lucide-react"
 
@@ -26,6 +26,7 @@ import ProductCard from "@/components/product-card"
 import ShopFacets, { useFacets } from "@/components/shop-facets"
 import { RevealGroup, RevealItem } from "@/components/motion/reveal"
 import { formatNaira } from "@/lib/pricing"
+import { useDebounce } from "@/hooks/use-debounce"
 import {
   SHOP_DEFAULTS,
   useDepartments,
@@ -33,6 +34,9 @@ import {
   useItems,
 } from "@/stores/shopStore"
 
+// "Best match" is the search's own order (search_products, 032) — offered,
+// and the default, only while there's a search.
+const BEST_MATCH = { value: "relevance-asc", label: "Best match" }
 const SORT_OPTIONS = [
   { value: "name-asc", label: "Name (A–Z)" },
   { value: "price-asc", label: "Price: Low to High" },
@@ -42,7 +46,10 @@ const SORT_OPTIONS = [
 
 // Anything can be typed into a URL. Only these reach the API — which validates
 // again server-side, but a junk ?sortBy= shouldn't produce a broken page here.
-const SORT_KEYS = new Set(["name", "price", "created_at", "stock"])
+const SORT_KEYS = new Set(["name", "price", "created_at", "stock", "relevance"])
+
+// While searching, the sort you get without choosing one is Best match.
+const defaultSortFor = (search) => (search ? "relevance" : SHOP_DEFAULTS.sortBy)
 
 // The whole product-browsing engine: search, filters, sort, grid, pagination.
 // Shared so /shop and /shop/category/[id] cannot drift — the category page used
@@ -81,9 +88,13 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
     // by a stray query param.
     category: locked ? lockedCategoryId : searchParams.get("category") || "all",
     department: locked ? "all" : searchParams.get("department") || "all",
-    sortBy: SORT_KEYS.has(searchParams.get("sortBy"))
-      ? searchParams.get("sortBy")
-      : SHOP_DEFAULTS.sortBy,
+    sortBy: (() => {
+      const search = searchParams.get("search") || ""
+      const chosen = searchParams.get("sortBy")
+      if (!SORT_KEYS.has(chosen)) return defaultSortFor(search)
+      // Best match means nothing without a search.
+      return chosen === "relevance" && !search ? SHOP_DEFAULTS.sortBy : chosen
+    })(),
     sortOrder: searchParams.get("sortOrder") === "desc" ? "desc" : "asc",
     page: Math.max(parseInt(searchParams.get("page")) || 1, 1),
     minPrice: num("minPrice"),
@@ -93,13 +104,31 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
     attrs,
   }
 
-  // Local mirror so typing doesn't rewrite the URL on every keystroke; the URL
-  // is only touched on submit.
+  // Local mirror of the search box. Results follow it as you type ("sta"
+  // already shows Stainless…), debounced so the URL and the API aren't hit on
+  // every keystroke; Enter applies at once.
   const [searchInput, setSearchInput] = useState(filters.search)
+  const debouncedSearch = useDebounce(searchInput, 300)
+
+  // The value this box last wrote to the URL. When the URL's search changes
+  // to exactly that, it's our own update arriving — leave the box alone, or a
+  // slow navigation would overwrite letters typed since ("stai" → "sta").
+  const pushedSearch = useRef(filters.search)
+
+  useEffect(() => {
+    const value = debouncedSearch.trim()
+    if (value === filters.search.trim()) return
+    pushedSearch.current = value
+    setParams({ search: value })
+    // setParams reads the latest URL itself; filters.search is the only input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch])
 
   // Someone navigating back/forward, or arriving via a shared link, changes the
   // URL without touching the input — keep the box showing what's applied.
   useEffect(() => {
+    if (filters.search === pushedSearch.current) return
+    pushedSearch.current = filters.search
     setSearchInput(filters.search)
   }, [filters.search])
 
@@ -108,6 +137,9 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
   // shared links stay short and canonical.
   const setParams = (patch, { resetPage = true, scroll = false } = {}) => {
     const next = new URLSearchParams(searchParams.toString())
+    // The default sort depends on whether there's a search, so it's judged
+    // against the search this patch leaves in place.
+    const finalSearch = "search" in patch ? patch.search || "" : next.get("search") || ""
 
     const apply = (key, value) => {
       // `brand` repeats rather than replaces — ticking two brands is an OR.
@@ -130,13 +162,15 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
         value === "" ||
         value === "all" ||
         (key === "page" && Number(value) === 1) ||
-        (key === "sortBy" && value === SHOP_DEFAULTS.sortBy) ||
+        (key === "sortBy" && value === defaultSortFor(finalSearch)) ||
         (key === "sortOrder" && value === SHOP_DEFAULTS.sortOrder)
       if (isDefault) next.delete(key)
       else next.set(key, String(value))
     }
 
     Object.entries(patch).forEach(([k, v]) => apply(k, v))
+    // Best match left over from a cleared search is meaningless — drop it.
+    if (!finalSearch && next.get("sortBy") === "relevance") next.delete("sortBy")
     // Any filter change invalidates the current page number — page 7 of the old
     // result set is meaningless against a new one, and often empty.
     if (resetPage && !("page" in patch)) next.delete("page")
@@ -152,9 +186,13 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
   const items = itemsData?.data || []
   const pagination = itemsData?.pagination || { total: 0, page: 1, pages: 0 }
 
+  // Enter: apply now rather than waiting out the debounce.
   const handleSearch = (e) => {
     e.preventDefault()
-    setParams({ search: searchInput })
+    const value = searchInput.trim()
+    if (value === filters.search.trim()) return
+    pushedSearch.current = value
+    setParams({ search: value })
   }
 
   const activeFacetCount =
@@ -283,7 +321,7 @@ export default function ProductBrowser({ lockedCategoryId = null }) {
         <SelectValue placeholder="Sort by" />
       </SelectTrigger>
       <SelectContent>
-        {SORT_OPTIONS.map((opt) => (
+        {(filters.search ? [BEST_MATCH, ...SORT_OPTIONS] : SORT_OPTIONS).map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
             {opt.label}
           </SelectItem>
