@@ -16,6 +16,7 @@ function buildPayload(body) {
 
   if (PLACEMENTS.includes(body.placement)) out.placement = body.placement
   if (typeof body.is_active === 'boolean') out.is_active = body.is_active
+  if (typeof body.image_only === 'boolean') out.image_only = body.image_only
   if (Number.isFinite(Number(body.sort_order))) out.sort_order = Number(body.sort_order)
 
   const date = (k, nullable) => {
@@ -31,6 +32,19 @@ function buildPayload(body) {
   date('ends_at', true)
 
   return out
+}
+
+// Database refusals that mean a migration hasn't been run yet, in words staff
+// can act on, instead of "Could not find the 'image_only' column…".
+export function promotionSaveError(error) {
+  const msg = String(error?.message || '')
+  if (error?.code === 'PGRST204' || /image_only/.test(msg)) {
+    return 'The "Picture only" option needs migration 034. Run it in the Supabase SQL editor, then save again.'
+  }
+  if (error?.code === '23514' && /placement/.test(msg)) {
+    return 'The "Home tile" placement needs migration 033. Run it in the Supabase SQL editor, then save again.'
+  }
+  return msg || 'Could not save the promotion.'
 }
 
 // GET /api/admin/promotions
@@ -73,7 +87,7 @@ export async function POST(request) {
       .insert([payload])
       .select()
       .single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (error) return NextResponse.json({ error: promotionSaveError(error) }, { status: 400 })
     return NextResponse.json({ data })
   } catch (error) {
     console.error('Create promotion error:', error)

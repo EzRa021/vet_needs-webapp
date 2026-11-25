@@ -59,12 +59,30 @@ const PLACEMENTS = [
   { value: "popup", label: "Popup", hint: "Overlay shown on arrival" },
 ]
 
+// What size of picture to make, per placement. Picture-only promotions (034)
+// are shown whole at their own shape, so the size decides how they look.
+const PICTURE_SIZE = {
+  home_hero: "Make it 1600 × 500 px, and every slide the same size: the slider takes the picture's shape.",
+  home_tile: "Make it 800 × 300 px, the same for all three tiles.",
+  home_banner: "Make it 1600 × 400 px. It fills the page width.",
+  shop_banner: "Make it 1600 × 400 px. It fills the width above the products.",
+  popup: "Make it 800 × 1000 px (upright) or 800 × 800 px (square).",
+}
+const IMAGE_HINT = {
+  home_hero: "Shown beside your words. A cut-out picture (transparent PNG) looks best.",
+  home_tile: "Shown small beside your words. A square picture works best.",
+  home_banner: "Shown whole beside your words.",
+  shop_banner: "Shown whole beside your words.",
+  popup: "Shown above your words.",
+}
+
 const EMPTY = {
   title: "",
   subtitle: "",
   image_url: "",
   link_url: "",
   placement: "home_hero",
+  image_only: false,
   sort_order: 0,
   starts_at: "",
   ends_at: "",
@@ -135,14 +153,23 @@ export default function AdminPromotionsPage() {
   const submit = async (e) => {
     e.preventDefault()
     setError(null)
-    if (!form.title.trim()) return setError("Give the promotion a title.")
+    if (!form.title.trim()) {
+      return setError(form.image_only ? "Give the promotion a name." : "Give the promotion a title.")
+    }
+    if (form.image_only && !form.image_url) {
+      return setError("Add the picture. A picture-only promotion shows nothing else.")
+    }
     if (form.starts_at && form.ends_at && new Date(form.ends_at) <= new Date(form.starts_at)) {
       return setError("The end date must be after the start date.")
     }
     try {
+      // image_only is sent only when it's on (or being switched off), so
+      // ordinary promotions keep saving before migration 034 has been run.
+      const { image_only, ...rest } = form
       await save.mutateAsync({
         id: editing?.id,
-        ...form,
+        ...rest,
+        ...(image_only || editing?.image_only ? { image_only } : {}),
         starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : undefined,
         ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
       })
@@ -235,13 +262,14 @@ export default function AdminPromotionsPage() {
                     alt={p.title}
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover"
+                    className={p.image_only ? "object-contain" : "object-cover"}
                     placeholderLabel="No image"
                     icon={Megaphone}
                   />
                   <div className="absolute left-3 top-3 flex gap-1.5">
                     <Badge variant={state.variant}>{state.label}</Badge>
                     <Badge variant="secondary">{placement?.label || p.placement}</Badge>
+                    {p.image_only && <Badge variant="secondary">Picture only</Badge>}
                   </div>
                 </div>
                 <CardContent className="flex flex-col gap-3 p-4">
@@ -310,26 +338,49 @@ export default function AdminPromotionsPage() {
                 </Alert>
               )}
 
+              <Field orientation="horizontal">
+                <div className="flex flex-col gap-1">
+                  <FieldLabel htmlFor="pr-image-only">Picture only</FieldLabel>
+                  <FieldDescription>
+                    Show just your picture, whole, with nothing written over or beside it. Use a
+                    finished banner that already has your words on it.
+                  </FieldDescription>
+                </div>
+                <Switch
+                  id="pr-image-only"
+                  checked={form.image_only}
+                  onCheckedChange={set("image_only")}
+                />
+              </Field>
+
               <Field data-invalid={error && !form.title.trim() ? true : undefined}>
-                <FieldLabel htmlFor="pr-title">Title</FieldLabel>
+                <FieldLabel htmlFor="pr-title">{form.image_only ? "Name" : "Title"}</FieldLabel>
                 <Input
                   id="pr-title"
                   value={form.title}
                   onChange={setInput("title")}
-                  placeholder="Harvest season sale"
+                  placeholder={form.image_only ? "Christmas sale banner" : "Christmas sale"}
                   aria-invalid={error && !form.title.trim() ? true : undefined}
                 />
+                {form.image_only && (
+                  <FieldDescription>
+                    Not shown on the banner. It names the promotion in this list, and is read out
+                    to people using screen readers, so describe what the picture says.
+                  </FieldDescription>
+                )}
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="pr-sub">Subtitle</FieldLabel>
-                <Input
-                  id="pr-sub"
-                  value={form.subtitle}
-                  onChange={setInput("subtitle")}
-                  placeholder="Up to 15% off dog food"
-                />
-              </Field>
+              {!form.image_only && (
+                <Field>
+                  <FieldLabel htmlFor="pr-sub">Subtitle</FieldLabel>
+                  <Input
+                    id="pr-sub"
+                    value={form.subtitle}
+                    onChange={setInput("subtitle")}
+                    placeholder="Up to 15% off dog food"
+                  />
+                </Field>
+              )}
 
               <Field>
                 <FieldLabel htmlFor="pr-place">Placement</FieldLabel>
@@ -352,8 +403,8 @@ export default function AdminPromotionsPage() {
                 </FieldDescription>
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="pr-img">Banner image</FieldLabel>
+              <Field data-invalid={error && form.image_only && !form.image_url ? true : undefined}>
+                <FieldLabel htmlFor="pr-img">{form.image_only ? "Banner picture" : "Picture"}</FieldLabel>
                 <ImageUpload
                   value={form.image_url}
                   onChange={(v) => setForm((f) => ({ ...f, image_url: v }))}
@@ -361,6 +412,11 @@ export default function AdminPromotionsPage() {
                   folder="promotions"
                   label={form.title || "Banner"}
                 />
+                <FieldDescription>
+                  {form.image_only ? PICTURE_SIZE[form.placement] : IMAGE_HINT[form.placement]}{" "}
+                  Upload it rather than pasting a link: a picture on another website can
+                  disappear when that site moves it.
+                </FieldDescription>
               </Field>
 
               <Field>

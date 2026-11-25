@@ -23,10 +23,14 @@ export function CategoryMenu({ taxonomy = null, isLoading = false, className = "
   const groups = groupsFrom(taxonomy)
   const showDept = groups.length > 1
 
+  // As tall as the slider beside it, whatever height that is (picture-only
+  // slides take their picture's shape): the list sits in an absolutely placed
+  // box, so it never stretches the row, and scrolls if it's longer.
   return (
+    <div className={cn("relative min-h-[320px]", className)}>
     <nav
       aria-label="Shop by category"
-      className={cn("flex h-[400px] flex-col overflow-hidden rounded-2xl border bg-card", className)}
+      className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border bg-card"
     >
       <p className="flex items-center gap-2 border-b bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
         <LayoutGrid className="size-4" aria-hidden="true" />
@@ -73,6 +77,7 @@ export function CategoryMenu({ taxonomy = null, isLoading = false, className = "
         All products
       </Link>
     </nav>
+    </div>
   )
 }
 

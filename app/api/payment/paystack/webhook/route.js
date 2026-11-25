@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { refreshBestSellers } from '@/lib/best-sellers'
 import { confirmPaystackPayment } from '@/lib/payments/paystack'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -54,6 +55,9 @@ export async function POST(request) {
 
       if (error) {
         console.error(`Webhook: apply_refund_result failed for refund ${refundId}:`, error)
+      } else if (success) {
+        // A refunded order no longer counts as a sale.
+        await refreshBestSellers()
       }
     }
 

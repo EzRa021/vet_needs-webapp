@@ -15,20 +15,28 @@ export async function GET(request) {
 
     const nowIso = new Date().toISOString()
 
-    let query = supabase
-      .from('promotions')
-      .select('id, title, subtitle, image_url, link_url, placement, sort_order')
-      .eq('is_active', true)
-      .lte('starts_at', nowIso)
-      .or(`ends_at.is.null,ends_at.gt.${nowIso}`)
-
-    if (placement && PLACEMENTS.includes(placement)) {
-      query = query.eq('placement', placement)
+    const run = (columns) => {
+      let query = supabase
+        .from('promotions')
+        .select(columns)
+        .eq('is_active', true)
+        .lte('starts_at', nowIso)
+        .or(`ends_at.is.null,ends_at.gt.${nowIso}`)
+      if (placement && PLACEMENTS.includes(placement)) {
+        query = query.eq('placement', placement)
+      }
+      return query
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false })
     }
 
-    const { data, error } = await query
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false })
+    const BASE = 'id, title, subtitle, image_url, link_url, placement, sort_order'
+    let { data, error } = await run(`${BASE}, image_only`)
+    // Before 034 there's no image_only column: show every promotion the old
+    // way rather than none at all.
+    if (error && (error.code === '42703' || /image_only/.test(error.message || ''))) {
+      ;({ data, error } = await run(BASE))
+    }
 
     if (error) {
       console.error('Promotions fetch error:', error)

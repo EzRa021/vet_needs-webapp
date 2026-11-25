@@ -102,6 +102,26 @@ export default function PromoPopup() {
           <X className="size-4" />
         </Button>
 
+        {/* Picture only (034): the picture is the whole message, so it's
+            shown whole and is itself the link; "No thanks" stays. */}
+        {promotion.image_only && promotion.image_url ? (
+          <>
+            <h2 id="promo-popup-title" className="sr-only">{promotion.title}</h2>
+            {promotion.link_url ? (
+              <Link href={promotion.link_url} onClick={close} className="block">
+                <BrandImage natural src={promotion.image_url} alt={promotion.title} sizes="384px" />
+              </Link>
+            ) : (
+              <BrandImage natural src={promotion.image_url} alt={promotion.title} sizes="384px" />
+            )}
+            <div className="p-2 text-center">
+              <Button variant="ghost" size="sm" onClick={close}>
+                No thanks
+              </Button>
+            </div>
+          </>
+        ) : (
+        <>
         {promotion.image_url && (
           <div className="relative aspect-[4/3] bg-surface-2">
             <BrandImage
@@ -134,6 +154,8 @@ export default function PromoPopup() {
             </Button>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   )

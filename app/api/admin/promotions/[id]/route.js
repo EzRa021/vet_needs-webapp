@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
 import { parseAdminBody, PromotionUpdateSchema } from '@/lib/validation/admin'
-import { buildPayload } from '../route'
+import { buildPayload, promotionSaveError } from '../route'
 
 // PATCH /api/admin/promotions/[id]
 export async function PATCH(request, { params }) {
@@ -28,7 +28,7 @@ export async function PATCH(request, { params }) {
       .select()
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (error) return NextResponse.json({ error: promotionSaveError(error) }, { status: 400 })
     return NextResponse.json({ data })
   } catch (error) {
     console.error('Update promotion error:', error)

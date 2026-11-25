@@ -4,11 +4,12 @@ import ProductCard from "@/components/product-card"
 import { cn } from "@/lib/utils"
 
 // Short lists side by side near the bottom of the home page — a last look
-// before the footer. A list needs at least two products to be worth a column,
-// and the section needs at least two columns to be worth showing.
+// before the footer. Any list with a product gets a column (a new shop may
+// have sold one thing — that's still its top seller); the section needs at
+// least two columns to be worth showing.
 /** @param {{ lists?: { title: string, items?: any[] }[], className?: string }} props */
 export default function ProductLists({ lists = [], className = "" }) {
-  const shown = (lists || []).filter((l) => l.items?.length >= 2)
+  const shown = (lists || []).filter((l) => l.items?.length >= 1)
   if (shown.length < 2) return null
 
   return (

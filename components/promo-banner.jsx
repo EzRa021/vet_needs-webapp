@@ -31,6 +31,30 @@ export default function PromoBanner({ placement, className = "" }) {
   const wrapperProps = promotion.link_url ? { href: promotion.link_url } : {}
   const hasImage = Boolean(promotion.image_url)
 
+  // Picture only (034): a finished banner with its words in it. Shown whole,
+  // at its own shape, full width — nothing drawn over or beside it. The title
+  // is what screen readers hear.
+  if (promotion.image_only && hasImage) {
+    return (
+      <Wrapper
+        {...wrapperProps}
+        className={cn(
+          "block overflow-hidden rounded-2xl border bg-card",
+          promotion.link_url && "transition-shadow hover:shadow-xl",
+          className
+        )}
+      >
+        <BrandImage
+          natural
+          src={promotion.image_url}
+          alt={promotion.title}
+          sizes="(max-width: 1280px) 100vw, 1280px"
+          icon={Megaphone}
+        />
+      </Wrapper>
+    )
+  }
+
   return (
     <Wrapper
       {...wrapperProps}

@@ -174,6 +174,19 @@ phone; placeholders like 0800 000 0000 are ignored.
 
 ---
 
+**Picture-only promotions** (034): a finished banner whose words are in the
+picture. Shown whole at its own shape and is itself the link — never text
+drawn over it. Title stays required (alt text). When every slide is a
+picture, the slider takes the pictures' shape (ask for 1600 × 500); tiles
+are held to 8:3 (`object-contain`); banners 4:1; popup upright or square.
+`BrandImage natural` does the sizing; pictures from other sites are served
+as-is (`unoptimized`), since the resizer only accepts our own hosts.
+
+**Top selling** reads `best_sellers` (015), rebuilt by `lib/best-sellers.js`
+after each payment, refund and cancellation.
+
+---
+
 ## Money & units (business rules that drive UI)
 
 - Currency is **NGN** everywhere. Format via `formatNaira()` — never hand-roll.

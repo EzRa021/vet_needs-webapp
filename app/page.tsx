@@ -146,7 +146,7 @@ export default function HomePage() {
           <CategoryMenu
             taxonomy={taxonomy}
             isLoading={taxonomyLoading}
-            className="hidden lg:flex"
+            className="hidden lg:block"
           />
           <HeroSlider promotions={slides} />
         </div>
@@ -173,10 +173,10 @@ export default function HomePage() {
       </section>
 
       {/* ===== Best sellers =====
-          Units actually sold in paid orders (015), not an admin flag. Hidden
-          until at least three products have sold — an empty or one-item
-          "best sellers" advertises that nobody is buying. */}
-      {bestSellers && bestSellers.length >= 3 && (
+          Units actually sold in paid orders (015), not an admin flag. Shown
+          once two products have sold; a single one sits in the Top selling
+          list at the bottom instead. */}
+      {bestSellers && bestSellers.length >= 2 && (
         <section aria-labelledby="best-sellers" className="container px-4 pb-8 md:px-6 md:pb-10">
           <div className="mb-4 flex items-end justify-between gap-3 border-b pb-3">
             <div>

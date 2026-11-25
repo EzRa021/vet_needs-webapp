@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { refreshBestSellers } from '@/lib/best-sellers'
 import { getStaffUser } from '@/lib/auth/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { parseAdminBody, OrderUpdateSchema } from '@/lib/validation/admin'
@@ -190,6 +191,11 @@ export async function PATCH(request, { params }) {
         // not turn a successful fulfilment update into a 500 for staff.
         console.error('Order status email failed:', e.message)
       }
+    }
+
+    // Cancelling a paid order takes it out of Top selling.
+    if (patch.status && current.status !== data.status && data.status === 'canceled') {
+      await refreshBestSellers()
     }
 
     return NextResponse.json({

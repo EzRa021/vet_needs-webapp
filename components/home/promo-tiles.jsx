@@ -20,6 +20,7 @@ export default function PromoTiles({ promotions = null, taxonomy = null, classNa
       text: p.subtitle,
       image: p.image_url,
       href: p.link_url || "/shop",
+      imageOnly: Boolean(p.image_only),
     }))
 
   const categories = (taxonomy || [])
@@ -44,6 +45,24 @@ export default function PromoTiles({ promotions = null, taxonomy = null, classNa
     >
       {tiles.map((t) => (
         <li key={t.id} className="w-[85%] shrink-0 snap-start md:w-auto">
+          {t.imageOnly ? (
+            // Picture only (034): the tile is the picture, whole. Held to the
+            // tile shape (8:3, the size the admin form asks for) so a picture
+            // of the wrong shape can't make the whole row tall — it's shown
+            // whole inside instead of cropped.
+            <Link
+              href={t.href}
+              className="group relative block aspect-[8/3] h-full overflow-hidden rounded-2xl border bg-card transition-colors hover:border-primary/40"
+            >
+              <BrandImage
+                fill
+                src={t.image}
+                alt={t.title}
+                sizes="(max-width: 768px) 85vw, 33vw"
+                className="object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            </Link>
+          ) : (
           <Link
             href={t.href}
             className="group flex h-full items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:border-primary/40"
@@ -70,6 +89,7 @@ export default function PromoTiles({ promotions = null, taxonomy = null, classNa
               </span>
             </div>
           </Link>
+          )}
         </li>
       ))}
     </ul>

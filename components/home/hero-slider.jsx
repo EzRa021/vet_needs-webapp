@@ -38,6 +38,12 @@ export default function HeroSlider({ promotions = null, className = "" }) {
   const [stopped, setStopped] = useState(false)
   const reduce = useReducedMotion()
   const many = slides.length > 1
+  // Picture-only slides (034) are finished banners. When every slide is one,
+  // the slider takes the pictures' own shape instead of a fixed height, so
+  // nothing is cropped or boxed. Mixed with text slides, they keep the fixed
+  // height and are shown whole inside it.
+  const isPicture = (s) => Boolean(s.image_only && s.image_url)
+  const allPictures = slides.every(isPicture)
 
   const goTo = useCallback((i) => {
     const el = track.current
@@ -68,7 +74,11 @@ export default function HeroSlider({ promotions = null, className = "" }) {
     <section
       aria-roledescription="carousel"
       aria-label="Offers"
-      className={cn("relative overflow-hidden rounded-2xl border bg-surface-2 grain", className)}
+      className={cn(
+        "relative overflow-hidden rounded-2xl border bg-surface-2",
+        !allPictures && "grain",
+        className
+      )}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -78,9 +88,22 @@ export default function HeroSlider({ promotions = null, className = "" }) {
       <div
         ref={track}
         onScroll={onScroll}
-        className="flex h-[230px] snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] sm:h-[300px] lg:h-[400px] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          "flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          allPictures ? "items-start" : "h-[230px] sm:h-[300px] lg:h-[400px]"
+        )}
       >
-        {slides.map((slide, i) => (
+        {slides.map((slide, i) =>
+          isPicture(slide) ? (
+            <PictureSlide
+              key={slide.id}
+              slide={slide}
+              label={`${slide.title}, ${i + 1} of ${slides.length}`}
+              current={i === index}
+              natural={allPictures}
+              priority={i === 0}
+            />
+          ) : (
           <div
             key={slide.id}
             role="group"
@@ -116,7 +139,8 @@ export default function HeroSlider({ promotions = null, className = "" }) {
               />
             </div>
           </div>
-        ))}
+          )
+        )}
       </div>
 
       {many && (
@@ -161,5 +185,46 @@ export default function HeroSlider({ promotions = null, className = "" }) {
         </>
       )}
     </section>
+  )
+}
+
+// A finished banner: the whole picture is the slide and the link.
+function PictureSlide({ slide, label, current, natural, priority }) {
+  const picture = natural ? (
+    <BrandImage
+      natural
+      src={slide.image_url}
+      alt={slide.title}
+      priority={priority}
+      sizes="(max-width: 1024px) 100vw, 75vw"
+      icon={PawPrint}
+    />
+  ) : (
+    <BrandImage
+      fill
+      src={slide.image_url}
+      alt={slide.title}
+      priority={priority}
+      sizes="(max-width: 1024px) 100vw, 75vw"
+      className="object-contain"
+      icon={PawPrint}
+    />
+  )
+  const cls = cn("relative block w-full shrink-0 snap-start", !natural && "h-full")
+  return slide.link_url ? (
+    <Link
+      href={slide.link_url}
+      role="group"
+      aria-roledescription="slide"
+      aria-label={label}
+      tabIndex={current ? 0 : -1}
+      className={cls}
+    >
+      {picture}
+    </Link>
+  ) : (
+    <div role="group" aria-roledescription="slide" aria-label={label} className={cls}>
+      {picture}
+    </div>
   )
 }
