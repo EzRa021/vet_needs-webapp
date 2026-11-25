@@ -33,6 +33,7 @@ import {
 import { usePromotion, useBestSellers } from "@/stores/shopStore";
 import { useTopReviews } from "@/stores/reviewStore";
 import { useRecentlyViewed } from "@/stores/recentlyViewedStore";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 // Served from /public/images — Next only serves static files from public/.
 const IMG = "/images";
@@ -130,7 +131,13 @@ const HOW_IT_WORKS = [
 export default function HomePage() {
   const { data: featured, isLoading: featuredLoading } = useFeaturedItems();
   const { data: newArrivals, isLoading: arrivalsLoading } = useNewArrivals();
-  const { data: taxonomy, isLoading: taxonomyLoading } = useHomeTaxonomy();
+  // The header shares this query and usually has it cached before the page
+  // hydrates; until then, render what the server sent (loading) — see
+  // hooks/use-hydrated.js.
+  const hydrated = useHydrated();
+  const { data: taxonomyData, isLoading: taxonomyFetching } = useHomeTaxonomy();
+  const taxonomyLoading = taxonomyFetching || !hydrated;
+  const taxonomy = hydrated ? taxonomyData : undefined;
   const { promotion: hero } = usePromotion("home_hero");
   const { data: topReviews } = useTopReviews(3);
   const { data: bestSellers } = useBestSellers(4);
