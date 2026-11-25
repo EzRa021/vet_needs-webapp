@@ -4,7 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { PawPrint } from "lucide-react"
 
-// next/image wrapper that falls back to a brand-colored (#F5F7F2) placeholder
+// next/image wrapper that falls back to a brand-colored (surface) placeholder
 // when the source is missing or fails to load. Real generated images dropped
 // into /public/images/ will slot in with no code changes.
 export default function BrandImage({

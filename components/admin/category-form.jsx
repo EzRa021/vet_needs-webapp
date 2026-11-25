@@ -166,7 +166,7 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
                     id="cat-name"
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. Poultry Feeds"
+                    placeholder="e.g. Dog Food"
                     aria-invalid={error && !form.name.trim() ? true : undefined}
                     autoFocus
                   />
@@ -206,7 +206,7 @@ export default function CategoryForm({ tree, node, defaultParentId }) {
                     value={form.meta_title}
                     maxLength={70}
                     onChange={(e) => setForm((f) => ({ ...f, meta_title: e.target.value }))}
-                    placeholder={form.name || "e.g. Poultry Feeds in Nigeria"}
+                    placeholder={form.name || "e.g. Dog Food in Ibadan"}
                   />
                   {/* Counts, because the limits aren't arbitrary — past them the
                       text is simply cut off in results. */}

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ShieldCheck, Truck, Leaf } from "lucide-react"
+import { ShieldCheck, Truck, PawPrint } from "lucide-react"
 
 import BrandImage from "@/components/brand-image"
 import BrandLogo from "@/components/brand-logo"
@@ -26,7 +26,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
           className="object-cover opacity-25"
           sizes="50vw"
           placeholderLabel=""
-          icon={Leaf}
+          icon={PawPrint}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/95 to-primary/70" />
         <div className="relative flex h-full flex-col justify-between p-12 text-primary-foreground">
@@ -37,7 +37,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
 
           <div className="space-y-6">
             <h2 className="font-display text-3xl font-bold leading-tight">
-              Quality feed &amp; pet care, delivered across Nigeria.
+              Pet food &amp; care, delivered to your door in Ibadan.
             </h2>
             <ul className="space-y-3 text-primary-foreground/90">
               <li className="flex items-center gap-3">
@@ -46,17 +46,17 @@ export default function AuthShell({ title, subtitle, children, footer }) {
               </li>
               <li className="flex items-center gap-3">
                 <Truck className="h-5 w-5 shrink-0" />
-                Fast nationwide delivery
+                Door delivery or store pickup
               </li>
               <li className="flex items-center gap-3">
-                <Leaf className="h-5 w-5 shrink-0" />
-                Farm-fresh, vet-approved products
+                <PawPrint className="h-5 w-5 shrink-0" />
+                Food, health and care for your pets
               </li>
             </ul>
           </div>
 
           <p className="text-sm text-primary-foreground/70">
-            Trusted by farmers &amp; pet owners nationwide.
+            Made for pet owners in Ibadan.
           </p>
         </div>
       </div>

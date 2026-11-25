@@ -7,11 +7,15 @@
 **Source of truth.** These are the rules the app is *actually* built on —
 verified against the code, not generated defaults.
 
-**Project:** VetNeeds — e-commerce storefront + admin dashboard selling **poultry
-feed, pet food, and farm/pet accessories** in Nigeria.
-**Audience:** poultry/fish farmers (bulk feed) and urban pet owners.
-**Vibe:** trustworthy, warm, professional — a specialist agri-and-pet-care
-store. Not a generic SaaS or bootstrap template.
+**Project:** VetNeeds — e-commerce storefront + admin dashboard selling **pet
+food and pet care** (dry food, fresh-frozen meat, health products, accessories)
+in **Ibadan**, Nigeria. Door delivery within Ibadan, or pickup from a store.
+**Since 2026-11-24 the shop is pet only, for now:** poultry and fish feed are
+paused (migration 030), so no copy, imagery or example may mention farms,
+poultry, livestock or feed-as-a-product.
+**Audience:** pet owners in Ibadan — dogs and cats first.
+**Vibe:** trustworthy, friendly, professional — a specialist pet shop. Not a
+generic SaaS or bootstrap template.
 
 > ⚠️ The palette and typography below are **pinned by the client**. Do not
 > substitute them — including when a tool or skill recommends something else.
@@ -28,22 +32,29 @@ HSL CSS variables in `app/globals.css`, consumed via Tailwind semantic tokens.
 
 | Role | Hex | Token | Use |
 |------|-----|-------|-----|
-| Primary — Deep Forest Green | `#1F6B45` | `--primary` | Brand, primary CTAs, active nav |
-| Secondary — Warm Earth | `#C49A4A` | `--earth` | Discount badges, stars, cart count |
-| Accent — Veterinary Blue | `#2F80ED` | `--info` | **Sparingly** — links, informational icons |
+| Primary — VetNeeds Blue | `#0077C7` | `--primary` | Brand, primary CTAs, active nav (white text 4.7:1) |
+| Secondary — Warm Gold | `#C49A4A` | `--earth` | Discount badges, stars, cart count |
+| Info | `#0C8FCE` | `--info` | **Sparingly** — informational icons |
 | Success | `#4CAF50` | `--success` | Confirmations, healthy stock, trend up |
 | Destructive | — | `--destructive` | Errors, out-of-stock, trend down, delete |
-| Background | `#FAFBF8` | `--background` | Page canvas |
-| Surface 2 | `#F5F7F2` | `--surface-2` | Alternating sections, image placeholders |
+| Background | `#F8FAFC` | `--background` | Page canvas |
+| Surface 2 | `#EEF3F8` | `--surface-2` | Alternating sections, image placeholders |
 | Card | `#FFFFFF` | `--card` | Cards, elevated surfaces |
 | Text primary | `#1E293B` | `--foreground` | Body copy |
 | Text secondary | `#64748B` | `--muted-foreground` | Supporting copy |
 
-**Dark mode** is a full sibling, not an afterthought: deep green-tinted surfaces,
-lighter primary (`145 48% 46%`). Both themes defined together in `globals.css`.
+**Dark mode** is a full sibling, not an afterthought: deep navy surfaces,
+lifted primary (`204 90% 56%`, 6.8:1 on the page). Both themes defined
+together in `globals.css`.
+
+The brand moved from forest green to blue on 2026-11-24 (client's choice,
+`#0077C7`). Emails can't read CSS variables, so `lib/email/templates.js`
+carries the same hexes; the manifest and `global-error.tsx` do too.
+`public/logo.png` was recoloured to match; it still shows a rooster, sheep,
+cow and wheat from the agri days — a pet-only logo is the client's to commission.
 
 **Rules**
-- Veterinary blue is an accent, **not** a second brand colour. Never a CTA.
+- Info blue is an accent, **not** a second brand colour. Never a CTA.
 - Never convey meaning by colour alone — pair with icon or text (WCAG).
 - Body text ≥ 4.5:1 contrast in both themes.
 - No manual `dark:` colour overrides in components.
@@ -73,10 +84,10 @@ lighter primary (`145 48% 46%`). Both themes defined together in `globals.css`.
 
 ---
 
-## Storefront signature — "feed sack"
+## Storefront signature — stencil & stamp
 
-Boldness is spent in **one** place: a feed-sack / rubber-stamp language drawn
-from the subject's real artifacts. Utilities in `globals.css`:
+Boldness is spent in **one** place: a stencil / rubber-stamp language drawn
+from the bags and labels pet food ships in. Utilities in `globals.css`:
 
 | Utility | What it is |
 |---------|-----------|
@@ -90,8 +101,8 @@ no frame, `object-contain` so it's never cropped, `drop-shadow` so the shadow
 follows the cut-out's real edges, and a soft radial glow behind it for depth.
 Do not re-introduce a bordered/filled frame: it fights the transparency.
 
-**Primary nav device:** "Shop by animal" (Poultry / Dogs / Cats / Fish) — for
-this audience the first question is *what are you feeding?*, not a generic grid.
+**Primary nav device:** the departments from the category tree (today: Pet) —
+for this audience the first question is *what pet is it for?*, not a generic grid.
 
 Everything around the signature stays quiet and disciplined.
 

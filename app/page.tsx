@@ -7,14 +7,13 @@ import {
   Truck,
   ShieldCheck,
   Headphones,
-  Leaf,
-  Sparkles,
-  Bird,
+  Store,
   Dog,
   Cat,
   Fish,
   BadgeCheck,
-  Wheat,
+  PawPrint,
+  Scale,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -79,11 +78,8 @@ const useHomeTaxonomy = () =>
 // Departments get an icon by slug where we have a sensible one; anything the
 // shop adds later still renders, just with the default mark.
 const DEPARTMENT_ICONS: Record<string, any> = {
-  pet: Dog,
-  pets: Dog,
-  feed: Wheat,
-  feeds: Wheat,
-  poultry: Bird,
+  pet: PawPrint,
+  pets: PawPrint,
   fish: Fish,
   cat: Cat,
   cats: Cat,
@@ -91,20 +87,43 @@ const DEPARTMENT_ICONS: Record<string, any> = {
   dogs: Dog,
 };
 
-const iconFor = (slug: string) => DEPARTMENT_ICONS[slug] || Leaf;
+const iconFor = (slug: string) => DEPARTMENT_ICONS[slug] || PawPrint;
 
+// What a pet owner in Ibadan needs to know before they buy: how it reaches
+// them, what it costs to get it there, and that paying is safe. Only claims
+// the shop actually makes — no "vet-approved", no "nationwide".
 const TRUST_POINTS = [
   {
     icon: Truck,
-    title: "Nationwide Delivery",
-    text: "Fast shipping across Nigeria",
+    title: "Door delivery in Ibadan",
+    text: "See the price for your area before you pay",
   },
-  { icon: ShieldCheck, title: "Secure Payment", text: "Protected by Paystack" },
-  { icon: Leaf, title: "Quality Guaranteed", text: "Farm-fresh, vet-approved" },
+  {
+    icon: Store,
+    title: "Store pickup",
+    text: "Collect from the store nearest you",
+  },
+  { icon: ShieldCheck, title: "Secure payment", text: "Protected by Paystack" },
   {
     icon: Headphones,
-    title: "Friendly Support",
+    title: "Friendly support",
     text: "Real people, ready to help",
+  },
+];
+
+// How an order reaches the customer — a real sequence, so it's numbered.
+const HOW_IT_WORKS = [
+  {
+    title: "Choose your area",
+    text: "Pick your part of Ibadan at checkout and the delivery price shows straight away. No surprises at the end.",
+  },
+  {
+    title: "Pay securely",
+    text: "Checkout runs through Paystack, so we never see your card details.",
+  },
+  {
+    title: "Delivered, or ready to collect",
+    text: "We bring it to your door, or have it waiting at your store with a pickup code.",
   },
 ];
 
@@ -123,8 +142,8 @@ export default function HomePage() {
   // A live home_hero promotion takes over the hero's words, artwork and primary
   // CTA. With none set, we fall back to the designed default copy.
   const heroImage = hero?.image_url || `${IMG}/hero-banner.png`;
-  const heroCta = hero?.link_url || "/shop?search=feed";
-  const heroCtaLabel = hero ? "Shop now" : "Shop Poultry Feed";
+  const heroCta = hero?.link_url || "/shop";
+  const heroCtaLabel = hero ? "Shop now" : "Shop pet food";
 
   return (
     <main className="flex-1">
@@ -137,7 +156,7 @@ export default function HomePage() {
                 and a scroll trigger would leave it blank until the user moved.
                 Delays cascade top-to-bottom so the eye follows the headline. */}
             <RevealOnLoad as="p" className="eyebrow">
-              Poultry feed · Pet food · Farm supply
+              Pet food &amp; care in Ibadan
             </RevealOnLoad>
             <RevealOnLoad className="space-y-7" delay={0.08}>
               {hero ? (
@@ -154,16 +173,17 @@ export default function HomePage() {
               ) : (
                 <>
                   <h1 className="font-display text-[2.75rem] font-extrabold leading-[0.98] tracking-tight sm:text-6xl lg:text-[4.25rem]">
-                    Feed that grows
+                    Good food for
                     <br />
-                    <span className="text-primary">healthy flocks</span>
+                    <span className="text-primary">happy, healthy</span>
                     <br />
-                    &amp; happy pets.
+                    pets.
                   </h1>
                   <p className="max-w-[520px] text-lg text-muted-foreground">
-                    From layer mash by the 25kg bag to premium dog, cat and fish
-                    food — quality nutrition your animals thrive on, delivered
-                    across Nigeria at fair Naira prices.
+                    Dry food, fresh-frozen meat by the kilo, supplements and
+                    everyday essentials for your dogs, cats and other pets —
+                    delivered to your door in Ibadan, or ready to collect from
+                    our store.
                   </p>
                 </>
               )}
@@ -218,7 +238,7 @@ export default function HomePage() {
                 className="h-12 px-8 text-base"
                 asChild
               >
-                <Link href="/shop">Browse All Products</Link>
+                <Link href="#delivery">How delivery works</Link>
               </Button>
             </RevealOnLoad>
           </div>
@@ -227,7 +247,7 @@ export default function HomePage() {
               object-contain shows the whole image; drop-shadow follows the
               cut-out's real edges instead of a rectangle. */}
           <RevealOnLoad
-            className="relative mx-auto w-full max-w-[720px]"
+            className="relative mx-auto w-full max-w-[540px]"
             direction="left"
             delay={0.12}
             duration={0.6}
@@ -238,17 +258,17 @@ export default function HomePage() {
               aria-hidden="true"
               className="absolute left-1/2 top-1/2 -z-10 h-[80%] w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl"
             />
-            {/* 3:2 matches the artwork, so it fills the frame with no dead space */}
-            <div className="relative aspect-[3/2] w-full">
+            {/* The artwork's own ratio, so it fills the frame with no dead space */}
+            <div className="relative aspect-[854/807] w-full">
               <BrandImage
                 src={heroImage}
-                alt={hero?.title || "Cats, dogs, chickens, rabbits and farm animals cared for with VetNeeds feed and pet food"}
+                alt={hero?.title || "A cat, five dogs and a rabbit — the pets VetNeeds feeds and cares for"}
                 fill
                 priority
                 className="object-contain drop-shadow-2xl"
                 sizes="(max-width: 1024px) 100vw, 55vw"
                 placeholderLabel="Hero image"
-                icon={Bird}
+                icon={PawPrint}
               />
             </div>
 
@@ -263,13 +283,13 @@ export default function HomePage() {
               <span>Assured</span>
             </div>
 
-            {/* Weight tag chip */}
+            {/* How it's sold: bags of dry food, fresh meat weighed out */}
             <div className="absolute bottom-2 right-0 flex items-center gap-2 rounded-2xl border bg-card px-4 py-3 shadow-xl">
-              <Wheat className="h-5 w-5 text-earth" />
+              <Scale className="h-5 w-5 text-earth" />
               <div className="leading-tight">
-                <p className="text-sm font-bold">Sold by the bag</p>
+                <p className="text-sm font-bold">By the bag or by the kilo</p>
                 <p className="text-xs text-muted-foreground">
-                  5kg · 10kg · 25kg
+                  Dry food in bags, fresh meat weighed out
                 </p>
               </div>
             </div>
@@ -324,7 +344,7 @@ export default function HomePage() {
             </div>
           ) : departments.length === 0 ? (
             <div className="rounded-2xl border border-dashed py-16 text-center">
-              <Leaf className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <PawPrint className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
               <p className="font-medium">No categories yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Add a department in the admin and it will appear here.
@@ -445,7 +465,7 @@ export default function HomePage() {
             </RevealGroup>
           ) : (
             <div className="rounded-2xl border border-dashed py-16 text-center">
-              <Leaf className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <PawPrint className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
               <p className="font-medium">No featured products yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Mark items as featured to show them here.
@@ -458,20 +478,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== Promo band ===== */}
-      <section className="section">
+      {/* ===== Delivery & pickup =====
+          Was a "Bulk & farm orders" band selling poultry feed. The shop is pet
+          only now, and the question a new customer actually has is how the
+          order reaches them — so this answers it, in the order it happens. */}
+      <section id="delivery" className="section scroll-mt-24">
         <div className="container px-4 md:px-6">
-          <Reveal className="relative grid items-center gap-8 overflow-hidden rounded-3xl border bg-primary p-8 text-primary-foreground md:grid-cols-2 md:p-12">
+          <Reveal className="relative grid gap-8 overflow-hidden rounded-3xl border bg-primary p-8 text-primary-foreground md:grid-cols-[0.9fr_1.1fr] md:items-center md:p-12">
             <div className="relative z-10 space-y-4">
               <Badge className="border-transparent bg-earth text-earth-foreground">
-                Bulk & farm orders
+                Ibadan delivery &amp; pickup
               </Badge>
               <h2 className="text-2xl font-bold text-primary-foreground md:text-4xl">
-                Feeding a farm? Save more when you buy in bulk.
+                To your door, or ready at the store.
               </h2>
               <p className="max-w-md text-primary-foreground/85">
-                Stock up on poultry feed by the bag and keep your flock healthy
-                all season. Reliable supply, delivered to your gate.
+                We deliver across Ibadan, priced by your area. Rather collect?
+                Your order waits at the store nearest you.
               </p>
               <Button
                 size="lg"
@@ -479,23 +502,30 @@ export default function HomePage() {
                 className="h-12 px-8 font-semibold"
                 asChild
               >
-                <Link href="/shop?search=feed">
-                  Shop Poultry Feed
+                <Link href="/shop">
+                  Start shopping
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl">
-              <BrandImage
-                src={`${IMG}/farmer-with-chickens.jpg`}
-                alt="Farmer with healthy chickens"
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-                placeholderLabel="Farm lifestyle image"
-                icon={Leaf}
-              />
-            </div>
+            <ol className="relative z-10 flex flex-col gap-3">
+              {HOW_IT_WORKS.map((step, i) => (
+                <li
+                  key={step.title}
+                  className="flex gap-4 rounded-2xl bg-primary-foreground/10 p-4 md:p-5"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-foreground font-display text-sm font-bold tabular-nums text-primary">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="font-semibold">{step.title}</p>
+                    <p className="mt-0.5 text-sm text-primary-foreground/85">
+                      {step.text}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </Reveal>
         </div>
       </section>
@@ -508,7 +538,7 @@ export default function HomePage() {
         <div className="container px-4 md:px-6">
           <ProductRail
             title="Best sellers"
-            description="What farmers and pet owners buy most"
+            description="What pet owners buy most"
             items={bestSellers}
             href="/shop"
             hrefLabel="Shop all"
@@ -575,7 +605,7 @@ export default function HomePage() {
             <Reveal className="mb-10 text-center">
               <p className="eyebrow mb-2 justify-center">Reviews</p>
               <h2 className="text-3xl font-bold md:text-4xl">
-                Trusted by farmers &amp; pet owners
+                Trusted by pet owners
               </h2>
               <p className="mt-2 text-muted-foreground">
                 What customers say about what they bought
@@ -626,11 +656,11 @@ export default function HomePage() {
         <div className="container px-4 md:px-6">
           <Reveal className="relative overflow-hidden rounded-3xl border bg-card px-6 py-12 text-center md:px-12 md:py-16">
             <h2 className="text-2xl font-bold md:text-4xl">
-              Give your animals the care they deserve
+              Give your pets the care they deserve
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground md:text-lg">
-              Join farmers and pet owners across Nigeria who trust VetNeeds for
-              quality feed, food and accessories at fair prices.
+              Food, health products and everyday essentials for your dogs and
+              cats, at fair prices, from a pet shop right here in Ibadan.
             </p>
             <Button
               size="lg"

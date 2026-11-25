@@ -212,7 +212,7 @@ export default function CouponForm({ coupon }) {
                     rows={2}
                     value={form.description}
                     onChange={setInput("description")}
-                    placeholder="e.g. Harvest season promo for poultry farmers"
+                    placeholder="e.g. December promo for new pet owners"
                   />
                   <FieldDescription>For your team — never shown to customers.</FieldDescription>
                 </Field>

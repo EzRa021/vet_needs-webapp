@@ -108,7 +108,7 @@ export default function TermsPage() {
         </p>
         <p>
           For hygiene and safety reasons we cannot accept returns of{" "}
-          <strong>opened feed, food or perishable products</strong> unless they are faulty.
+          <strong>opened food or perishable products</strong> unless they are faulty.
           Unopened items in their original packaging can be returned within{" "}
           <strong>{LEGAL.returnWindowDays} days</strong>.
         </p>
@@ -130,7 +130,7 @@ export default function TermsPage() {
 
       <Section id="animal-health" heading="9. Product guidance is not veterinary advice">
         <p>
-          Feed and pet-care information on this site is general guidance only. It is{" "}
+          Pet food and pet-care information on this site is general guidance only. It is{" "}
           <strong>not veterinary advice</strong>. Always follow the manufacturer&apos;s
           feeding instructions, and consult a qualified veterinarian about the health of
           your animals.

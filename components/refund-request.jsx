@@ -175,7 +175,7 @@ export default function RefundRequest({ order, guestToken }) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Reminder: opened feed and perishables can only be refunded if they&apos;re
+            Reminder: opened food and perishables can only be refunded if they&apos;re
             faulty — see our{" "}
             <a href="/terms" className="text-primary hover:underline">
               terms

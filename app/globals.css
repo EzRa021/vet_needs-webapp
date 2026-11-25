@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 /* ============================================================
-   Brand design system — agri + pet care storefront
-   Primary: Deep Forest Green  Secondary: Warm Earth
-   Accent:  Veterinary Blue (sparingly)
-   Trustworthy, warm, professional.
+   Brand design system — pet food & pet care storefront
+   Primary: VetNeeds Blue #0077C7   Secondary: Warm Gold (earth)
+   Cool, clean neutrals tinted toward the blue.
+   Trustworthy, friendly, professional.
    ============================================================ */
 
 @layer base {
   :root {
-    --background: 90 20% 98%;        /* #FAFBF8 */
-    --surface-2: 96 22% 96%;         /* #F5F7F2 secondary background */
+    --background: 210 33% 98%;       /* #F8FAFC cool off-white */
+    --surface-2: 207 33% 95%;        /* #EEF3F8 secondary background */
     --foreground: 217 33% 17%;       /* #1E293B */
 
     --card: 0 0% 100%;
@@ -21,100 +21,98 @@
     --popover: 0 0% 100%;
     --popover-foreground: 217 33% 17%;
 
-    --primary: 150 55% 27%;          /* #1F6B45 deep forest green */
+    --primary: 204 100% 39%;         /* #0077C7 VetNeeds blue — white text 4.7:1 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 20% 95%;        /* soft green surface */
-    --secondary-foreground: 150 32% 20%;
+    --secondary: 204 60% 95%;        /* soft blue surface */
+    --secondary-foreground: 204 75% 22%;
 
-    --muted: 150 16% 95%;
+    --muted: 210 28% 95%;
     --muted-foreground: 215 16% 47%; /* #64748B */
 
-    --accent: 150 24% 93%;           /* subtle green hover bg (NOT the blue) */
-    --accent-foreground: 150 40% 20%;
+    --accent: 204 62% 94%;           /* subtle blue hover bg */
+    --accent-foreground: 204 80% 22%;
 
     --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 122 39% 49%;          /* #4CAF50 */
+    --success: 122 39% 49%;          /* #4CAF50 — stays green: it means "done", not brand */
     --success-foreground: 0 0% 100%;
 
-    --earth: 39 51% 53%;             /* #C49A4A warm earth */
+    --earth: 39 51% 53%;             /* #C49A4A warm gold */
     --earth-foreground: 30 45% 14%;
 
-    --info: 214 84% 56%;             /* #2F80ED veterinary blue */
+    --info: 199 89% 42%;             /* #0C8FCE — a lighter cousin of the brand blue */
     --info-foreground: 0 0% 100%;
 
-    --border: 150 14% 90%;
-    --input: 150 14% 88%;
-    --ring: 150 55% 27%;
+    --border: 210 22% 90%;
+    --input: 210 22% 87%;
+    --ring: 204 100% 39%;
 
     /* Admin sidebar. The shadcn sidebar styles itself entirely through these
-       tokens (bg-sidebar, bg-sidebar-accent, ring-sidebar-ring...). They were
-       never defined here, so every one of those utilities resolved to nothing
-       and the mobile sheet rendered with no background at all. Tuned to the
-       green palette rather than shadcn's default greys. */
-    --sidebar: 150 20% 97%;
+       tokens (bg-sidebar, bg-sidebar-accent, ring-sidebar-ring...), tuned to
+       the blue palette rather than shadcn's default greys. */
+    --sidebar: 210 30% 97%;
     --sidebar-foreground: 217 33% 17%;
-    --sidebar-primary: 150 55% 27%;
+    --sidebar-primary: 204 100% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 24% 93%;
-    --sidebar-accent-foreground: 150 40% 20%;
-    --sidebar-border: 150 14% 89%;
-    --sidebar-ring: 150 55% 27%;
+    --sidebar-accent: 204 62% 94%;
+    --sidebar-accent-foreground: 204 80% 22%;
+    --sidebar-border: 210 22% 89%;
+    --sidebar-ring: 204 100% 39%;
 
     --radius: 1rem;                  /* 16px cards */
   }
 
   .dark {
-    --background: 160 24% 8%;
-    --surface-2: 160 20% 11%;
-    --foreground: 150 14% 92%;
+    --background: 214 32% 8%;        /* #0E141B deep navy */
+    --surface-2: 214 26% 11%;
+    --foreground: 210 20% 92%;
 
-    --card: 160 22% 11%;
-    --card-foreground: 150 14% 92%;
+    --card: 214 28% 11%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 160 22% 11%;
-    --popover-foreground: 150 14% 92%;
+    --popover: 214 28% 11%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 145 48% 46%;          /* lighter forest green for dark */
-    --primary-foreground: 160 30% 8%;
+    --primary: 204 90% 56%;          /* #2AA3F4 lifted blue for dark — 6.8:1 on the page */
+    --primary-foreground: 214 32% 8%;
 
-    --secondary: 160 15% 16%;
-    --secondary-foreground: 150 14% 90%;
+    --secondary: 214 20% 16%;
+    --secondary-foreground: 210 20% 90%;
 
-    --muted: 160 15% 16%;
-    --muted-foreground: 150 10% 62%;
+    --muted: 214 20% 16%;
+    --muted-foreground: 210 12% 64%;
 
-    --accent: 160 15% 18%;
-    --accent-foreground: 150 14% 90%;
+    --accent: 214 22% 18%;
+    --accent-foreground: 210 20% 90%;
 
     --destructive: 0 62% 52%;
     --destructive-foreground: 0 0% 98%;
 
     --success: 122 39% 55%;
-    --success-foreground: 160 30% 8%;
+    --success-foreground: 214 32% 8%;
 
     --earth: 39 50% 60%;
     --earth-foreground: 30 45% 12%;
 
-    --info: 214 84% 64%;
-    --info-foreground: 160 30% 8%;
+    --info: 199 85% 60%;
+    --info-foreground: 214 32% 8%;
 
-    --border: 160 12% 20%;
-    --input: 160 12% 22%;
-    --ring: 145 48% 46%;
+    --border: 214 18% 20%;
+    --input: 214 18% 22%;
+    --ring: 204 90% 56%;
 
     /* Slightly lifted off --background so the sidebar reads as its own
        surface in dark mode rather than melting into the page. */
-    --sidebar: 160 22% 10%;
-    --sidebar-foreground: 150 14% 92%;
-    --sidebar-primary: 145 48% 46%;
-    --sidebar-primary-foreground: 160 30% 8%;
-    --sidebar-accent: 160 15% 18%;
-    --sidebar-accent-foreground: 150 14% 90%;
-    --sidebar-border: 160 12% 20%;
-    --sidebar-ring: 145 48% 46%;
+    --sidebar: 214 28% 10%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 204 90% 56%;
+    --sidebar-primary-foreground: 214 32% 8%;
+    --sidebar-accent: 214 22% 18%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 214 18% 20%;
+    --sidebar-ring: 204 90% 56%;
   }
 }
 
@@ -141,10 +139,7 @@
   }
   /* Styled placeholder background for not-yet-generated imagery */
   .img-placeholder {
-    background-color: #f5f7f2;
-  }
-  .dark .img-placeholder {
-    background-color: hsl(160 20% 13%);
+    background-color: hsl(var(--surface-2));
   }
   /* Section rhythm helper */
   .section {

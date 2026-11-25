@@ -153,7 +153,7 @@ export function TagsInput({ value, onChange }) {
       )}
       <Input
         value={draft}
-        placeholder="feed, layer, poultry — comma or Enter"
+        placeholder="dog, adult, chicken flavour — comma or Enter"
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === ",") {

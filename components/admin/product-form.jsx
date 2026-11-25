@@ -278,7 +278,7 @@ export default function ProductForm({ product }) {
                     id="p-name"
                     value={form.name}
                     onChange={setInput("name")}
-                    placeholder="e.g. Layer Mash 25kg"
+                    placeholder="e.g. Adult Dog Food 15kg"
                     aria-invalid={error && !form.name.trim() ? true : undefined}
                   />
                 </Field>
@@ -286,12 +286,12 @@ export default function ProductForm({ product }) {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field>
                     <FieldLabel htmlFor="p-sku">SKU</FieldLabel>
-                    <Input id="p-sku" value={form.sku} onChange={setInput("sku")} placeholder="FEED-PLT-001" />
+                    <Input id="p-sku" value={form.sku} onChange={setInput("sku")} placeholder="PET-DOG-001" />
                     <FieldDescription>Must be unique.</FieldDescription>
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="p-brand">Brand</FieldLabel>
-                    <Input id="p-brand" value={form.brand} onChange={setInput("brand")} placeholder="TopFeeds" />
+                    <Input id="p-brand" value={form.brand} onChange={setInput("brand")} placeholder="e.g. Royal Canin" />
                   </Field>
                 </div>
 

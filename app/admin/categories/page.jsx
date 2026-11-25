@@ -165,7 +165,7 @@ export default function AdminCategoriesPage() {
                   </EmptyMedia>
                   <EmptyTitle>No categories yet</EmptyTitle>
                   <EmptyDescription>
-                    Start with a department like “Pet” or “Feed”, then add
+                    Start with a department like “Pet”, then add
                     categories inside it.
                   </EmptyDescription>
                 </EmptyHeader>

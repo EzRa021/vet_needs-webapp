@@ -27,7 +27,7 @@ const useSuggestions = (q) =>
   })
 
 export default function SearchAutocomplete({
-  placeholder = "Search feed, pet food, accessories…",
+  placeholder = "Search dog food, cat food, accessories…",
   className,
   inputClassName,
   onNavigate,

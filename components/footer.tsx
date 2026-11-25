@@ -141,8 +141,8 @@ export default function Footer() {
               <span className="font-display text-xl font-bold">VetNeeds</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Quality poultry feed, pet food and farm &amp; pet accessories —
-              delivered across Nigeria. Trusted by farmers and pet owners alike.
+              Food, health and everyday care for dogs, cats and other pets —
+              delivered to your door in Ibadan, or ready to collect from our store.
             </p>
             <div className="flex gap-2">
               {[

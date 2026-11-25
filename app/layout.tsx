@@ -17,26 +17,26 @@ export const metadata: Metadata = {
   // WhatsApp and gets a blank card.
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL),
   title: {
-    default: "VetNeeds — Poultry Feed, Pet Food & Farm Supplies in Nigeria",
+    default: "VetNeeds — Pet Food & Pet Care in Ibadan",
     template: "%s | VetNeeds",
   },
   description:
-    "Quality poultry feed, pet food and farm & pet accessories delivered across Nigeria. Secure Paystack checkout.",
+    "Dog and cat food, fresh-frozen meat, supplements and pet essentials. Delivered to your door in Ibadan or ready to collect from our store. Secure Paystack checkout.",
   openGraph: {
     type: "website",
     siteName: "VetNeeds",
     locale: "en_NG",
   },
-  // The shop sells feed to farmers as much as food to pet owners — the old
-  // description said "dog and cat essentials", which is half the business.
+  // Pet only for now — poultry and farm feed are paused (030). What a pet
+  // owner in Ibadan types into a search box.
   keywords: [
-    "poultry feed Nigeria",
-    "layer mash",
-    "broiler starter",
-    "fish feed",
-    "pet food Nigeria",
-    "dog food",
-    "cat food",
+    "pet food Ibadan",
+    "pet shop Ibadan",
+    "dog food Ibadan",
+    "cat food Ibadan",
+    "pet supplies Nigeria",
+    "dog food Nigeria",
+    "cat food Nigeria",
   ],
 }
 

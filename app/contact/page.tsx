@@ -92,8 +92,8 @@ export default function ContactPage() {
           </nav>
           <h1 className="text-4xl font-extrabold md:text-5xl">Get in touch</h1>
           <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-            Questions about feed, an order, or bulk supply for your farm? Our team
-            is happy to help — reach out any time.
+            Not sure which food suits your pet, or need help with an order or
+            delivery? Our team is happy to help — reach out any time.
           </p>
         </RevealOnLoad>
       </section>
@@ -188,7 +188,7 @@ export default function ContactPage() {
                       <SelectContent>
                         <SelectItem value="general">General Inquiry</SelectItem>
                         <SelectItem value="order">Order Status</SelectItem>
-                        <SelectItem value="bulk">Bulk / Farm Supply</SelectItem>
+                        <SelectItem value="bulk">Bulk orders</SelectItem>
                         <SelectItem value="return">Returns &amp; Refunds</SelectItem>
                         <SelectItem value="product">Product Information</SelectItem>
                         <SelectItem value="other">Other</SelectItem>

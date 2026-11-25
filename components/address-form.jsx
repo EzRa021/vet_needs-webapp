@@ -88,7 +88,7 @@ export default function AddressForm({ existing, onDone, onCancel }) {
         <Input
           id="label"
           value={values.label || ""}
-          placeholder="Home, Shop, Farm…"
+          placeholder="Home, Work, Mum's place…"
           maxLength={40}
           onChange={(e) => set("label", e.target.value)}
         />

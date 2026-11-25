@@ -10,9 +10,8 @@ import {
   LogOut,
   Package,
   ChevronDown,
-  Wheat,
+  PawPrint,
   Truck,
-  Bird,
   Dog,
   Cat,
   Fish,
@@ -50,11 +49,8 @@ const NAV_LINKS = [
 // Departments get an icon by slug where we have a sensible one; anything the
 // shop adds later still renders, just with the default mark.
 const DEPARTMENT_ICONS = {
-  pet: Dog,
-  pets: Dog,
-  feed: Wheat,
-  feeds: Wheat,
-  poultry: Bird,
+  pet: PawPrint,
+  pets: PawPrint,
   fish: Fish,
   cat: Cat,
   cats: Cat,
@@ -62,7 +58,7 @@ const DEPARTMENT_ICONS = {
   dogs: Dog,
 }
 
-const iconFor = (slug) => DEPARTMENT_ICONS[slug] || Wheat
+const iconFor = (slug) => DEPARTMENT_ICONS[slug] || PawPrint
 
 export default function Header() {
   const pathname = usePathname()
@@ -118,7 +114,7 @@ export default function Header() {
 
   return (
     <>
-      {/* Announcement strip — feed-sack stencil label, scrolls away */}
+      {/* Announcement strip — stencil label, scrolls away */}
       <div className="bg-primary text-primary-foreground">
         <div className="container flex h-9 items-center justify-center gap-2 px-4 text-center text-xs font-semibold uppercase tracking-[0.15em] md:justify-between md:px-6">
           <span className="hidden items-center gap-2 md:flex">
@@ -127,10 +123,10 @@ export default function Header() {
           </span>
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-earth" />
-            Quality feed &amp; pet care, delivered across Nigeria
+            Pet food &amp; care, delivered in Ibadan
           </span>
-          <Link href="/shop?search=feed" className="hidden underline-offset-4 hover:underline md:inline">
-            Shop poultry feed →
+          <Link href="/shop" className="hidden underline-offset-4 hover:underline md:inline">
+            Shop pet food →
           </Link>
         </div>
       </div>
@@ -145,7 +141,7 @@ export default function Header() {
               <div className="flex flex-col leading-none">
                 <span className="font-display text-xl font-extrabold tracking-tight">VetNeeds</span>
                 <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Feed &amp; Pet Care
+                  Pet Food &amp; Care
                 </span>
               </div>
             </Link>

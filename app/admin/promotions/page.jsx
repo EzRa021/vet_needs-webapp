@@ -326,7 +326,7 @@ export default function AdminPromotionsPage() {
                   id="pr-sub"
                   value={form.subtitle}
                   onChange={setInput("subtitle")}
-                  placeholder="Up to 15% off poultry feed"
+                  placeholder="Up to 15% off dog food"
                 />
               </Field>
 
@@ -368,7 +368,7 @@ export default function AdminPromotionsPage() {
                   id="pr-link"
                   value={form.link_url}
                   onChange={setInput("link_url")}
-                  placeholder="/shop?search=feed"
+                  placeholder="/shop?search=dog"
                 />
                 <FieldDescription>Where clicking the banner takes shoppers.</FieldDescription>
               </Field>

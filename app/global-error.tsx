@@ -33,7 +33,7 @@ export default function GlobalError({
           justifyContent: "center",
           padding: "1.5rem",
           textAlign: "center",
-          background: "#FAFBF8",
+          background: "#F8FAFC",
           color: "#1E293B",
           fontFamily:
             "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
@@ -57,7 +57,7 @@ export default function GlobalError({
               fontSize: "0.95rem",
               fontWeight: 600,
               color: "#fff",
-              background: "#1F6B45",
+              background: "#0077C7",
             }}
           >
             Try again

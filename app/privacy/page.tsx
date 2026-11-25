@@ -20,8 +20,8 @@ export default function PrivacyPage() {
       <Section id="who-we-are" heading="1. Who we are">
         <p>
           {LEGAL.brand} is a trading name of <strong>{LEGAL.legalName}</strong> (RC{" "}
-          {LEGAL.rcNumber}), {LEGAL.address}. We sell poultry feed, pet food and farm
-          and pet accessories in Nigeria.
+          {LEGAL.rcNumber}), {LEGAL.address}. We sell pet food, pet health products
+          and pet accessories in Ibadan, Nigeria.
         </p>
         <p>
           We are the data controller for the personal data described here. If you have
