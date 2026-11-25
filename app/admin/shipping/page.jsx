@@ -10,21 +10,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import MethodsCard from "@/components/admin/delivery/methods-card"
 import AreasPanel from "@/components/admin/delivery/areas-panel"
 import StoresPanel from "@/components/admin/delivery/stores-panel"
-import { useDeliveryAdmin } from "@/stores/deliveryAdminStore"
+import StatesPanel from "@/components/admin/delivery/states-panel"
+import { AREA_STATE, useDeliveryAdmin } from "@/stores/deliveryAdminStore"
 
-// Delivery (029): whether customers can have orders delivered to the door
-// and/or collect from a store; the Ibadan areas, each with its delivery price
-// and pickup store; and the stores themselves.
+// Delivery (029, 031): whether customers can have orders delivered to the
+// door and/or collect from a store; how each state is priced (fixed area
+// prices, or a quote by call/WhatsApp); the areas, each with its delivery
+// price and pickup store; and the stores themselves.
 export default function AdminDeliveryPage() {
   const { data, isLoading, isError, refetch, isFetching } = useDeliveryAdmin()
   const [tab, setTab] = useState("areas")
+  // The Areas tab shows one state; the States tab can send you to one.
+  const [areaState, setAreaState] = useState(AREA_STATE)
+  const showAreas = (state) => {
+    setAreaState(state)
+    setTab("areas")
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="font-display text-xl font-bold">Delivery</h1>
         <p className="text-sm text-muted-foreground">
-          Door delivery prices for each Ibadan area, and the store each area collects from.
+          How delivery is priced in each state, prices for each area, and the store each area
+          collects from.
         </p>
       </div>
 
@@ -56,6 +65,7 @@ export default function AdminDeliveryPage() {
                 Areas
                 <span className="text-xs tabular-nums text-muted-foreground">({data.areas.length})</span>
               </TabsTrigger>
+              <TabsTrigger value="states">States</TabsTrigger>
               <TabsTrigger value="stores" className="gap-1.5">
                 Stores
                 <span className="text-xs tabular-nums text-muted-foreground">({data.stores.length})</span>
@@ -63,7 +73,10 @@ export default function AdminDeliveryPage() {
             </TabsList>
 
             <TabsContent value="areas" className="mt-0">
-              <AreasPanel data={data} />
+              <AreasPanel data={data} state={areaState} onStateChange={setAreaState} />
+            </TabsContent>
+            <TabsContent value="states" className="mt-0">
+              <StatesPanel data={data} onShowAreas={showAreas} />
             </TabsContent>
             <TabsContent value="stores" className="mt-0">
               <StoresPanel data={data} onShowAreas={() => setTab("areas")} />

@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 
-// Admin data for the Delivery page (029): the Ibadan areas — each with its
-// door-delivery price and the store its customers collect from — and the
+// Admin data for the Delivery page (029, 031): every state and how door
+// delivery is priced there; the areas — each in a state, with its
+// door-delivery price and the store its customers collect from; and the
 // stores. Read and written straight through Supabase under the "staff manage
 // …" RLS policies, so the database enforces who can change them.
 //
@@ -10,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 // through /api/admin/settings with useSaveSettings (stores/adminStore.js).
 
 const KEY = ['admin', 'delivery']
+// Where the shop's own stores are, and the default for new areas.
 export const AREA_CITY = 'Ibadan'
 export const AREA_STATE = 'Oyo'
 
@@ -23,16 +25,17 @@ export const useDeliveryAdmin = () =>
     queryKey: KEY,
     queryFn: async () => {
       const supabase = createClient()
-      const [areas, stores] = await Promise.all([
+      const [areas, stores, states] = await Promise.all([
         supabase
           .from('delivery_areas')
-          .select('id, name, aliases, delivery_fee, pickup_point_id, is_active')
+          .select('id, name, aliases, city, state, delivery_fee, pickup_point_id, is_active')
           .order('name', { ascending: true }),
         supabase
           .from('pickup_points')
           .select('*')
           .order('sort_order', { ascending: true })
           .order('name', { ascending: true }),
+        supabase.from('delivery_states').select('state, pricing_mode').order('state', { ascending: true }),
       ])
       return {
         areas: (throwIf(areas) || []).map((a) => ({
@@ -40,6 +43,8 @@ export const useDeliveryAdmin = () =>
           delivery_fee: a.delivery_fee === null ? null : Number(a.delivery_fee),
         })),
         stores: throwIf(stores) || [],
+        // 031 not run yet: say so on the States tab instead of failing the page.
+        states: states.error ? null : states.data || [],
       }
     },
   })
@@ -87,9 +92,11 @@ export const useSaveArea = () => {
       }
       if ('pickup_point_id' in body) payload.pickup_point_id = body.pickup_point_id || null
       if ('is_active' in body) payload.is_active = body.is_active !== false
+      if ('city' in body) payload.city = String(body.city || '').trim().slice(0, 80)
+      if ('state' in body) payload.state = body.state
       if (!id) {
-        payload.city = AREA_CITY
-        payload.state = AREA_STATE
+        payload.city ||= AREA_CITY
+        payload.state ||= AREA_STATE
       }
       const q = id
         ? supabase.from('delivery_areas').update(payload).eq('id', id)
@@ -127,7 +134,7 @@ export const useUpdateAreas = () => {
 export const useAddAreas = () => {
   const invalidate = useInvalidate()
   return useMutation({
-    mutationFn: async ({ names, delivery_fee, pickup_point_id, existing }) => {
+    mutationFn: async ({ names, state, city, delivery_fee, pickup_point_id, existing }) => {
       const supabase = createClient()
       const fee = toFee(delivery_fee)
       if (Number.isNaN(fee)) throw new Error('The delivery price must be ₦0 or more.')
@@ -138,8 +145,8 @@ export const useAddAreas = () => {
         if (!name || taken.has(name.toLowerCase())) continue
         taken.add(name.toLowerCase())
         rows.push({
-          city: AREA_CITY,
-          state: AREA_STATE,
+          city: String(city || '').trim().slice(0, 80) || AREA_CITY,
+          state: state || AREA_STATE,
           name,
           delivery_fee: fee,
           pickup_point_id: pickup_point_id || null,
@@ -201,6 +208,23 @@ export const useDeleteStore = () => {
       const supabase = createClient()
       // Its areas fall back to "no store" (on delete set null).
       throwIf(await supabase.from('pickup_points').delete().eq('id', id))
+    },
+    onSuccess: invalidate,
+  })
+}
+
+// ---------- States ----------
+
+// How door delivery is priced in a state: 'fixed' (area prices at checkout)
+// or 'quote' (agreed by call or WhatsApp after the order).
+export const useSetStateMode = () => {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: async ({ state, pricing_mode }) => {
+      const supabase = createClient()
+      throwIf(
+        await supabase.from('delivery_states').update({ pricing_mode }).eq('state', state).select().single()
+      )
     },
     onSuccess: invalidate,
   })

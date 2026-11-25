@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { CircleAlert, Loader2, RotateCw, Store, Truck } from "lucide-react"
+import { CircleAlert, Loader2, MessageCircle, RotateCw, Store, Truck } from "lucide-react"
 import { formatNaira } from "@/lib/pricing"
-import { formatAddress } from "@/lib/nigeria"
+import { NIGERIAN_STATES, formatAddress } from "@/lib/nigeria"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -36,6 +36,7 @@ import {
   addressToShippingInfo,
 } from "@/stores/addressStore"
 import { useUser } from "@/stores/authStore"
+import { useDebounce } from "@/hooks/use-debounce"
 
 // A choice card: the whole card is the label, so the tap target is the card,
 // not the 16px radio dot.
@@ -84,10 +85,12 @@ export default function CheckoutPage() {
 
   const createOrder = useCreateOrder()
 
-  // ---- Delivery choices (029) -------------------------------------------
-  // Which ways are on is the shop's call (admin Delivery page); the area is
-  // the customer's, and it decides both the door-delivery price and which
-  // store a pickup comes from.
+  // ---- Delivery choices (029, 031) --------------------------------------
+  // Which ways are on is the shop's call (admin Delivery page). The customer
+  // picks their STATE first; the state decides how door delivery is priced:
+  //   fixed  choose an area and pay its price now (Oyo/Ibadan)
+  //   quote  order now; the delivery fee is agreed by call or WhatsApp
+  // In a fixed state the area also decides which store a pickup comes from.
   const {
     data: options,
     isLoading: optionsLoading,
@@ -95,7 +98,6 @@ export default function CheckoutPage() {
     refetch: retryOptions,
     isFetching: optionsFetching,
   } = useDeliveryOptions()
-  const areas = options?.areas || []
   const stores = options?.stores || []
   const canDeliver = Boolean(options?.methods?.delivery)
   const canPickup = Boolean(options?.methods?.pickup)
@@ -107,20 +109,43 @@ export default function CheckoutPage() {
       ? canPickup || !canDeliver ? "pickup" : "delivery"
       : canDeliver || !canPickup ? "delivery" : "pickup"
 
-  // A remembered area that's gone (removed, switched off) counts as unchosen.
-  const area = areas.find((a) => a.id === delivery.areaId) || null
+  const state = NIGERIAN_STATES.includes(shippingInfo.state) ? shippingInfo.state : ""
+  const stateInfo = (options?.states || []).find((st) => st.state === state) || null
+  const fixedState = stateInfo?.mode === "fixed"
+  const stateAreas = (options?.areas || []).filter((a) => a.state === state)
+
+  // A remembered area that's gone, or belongs to another state, is unchosen.
+  const area = stateAreas.find((a) => a.id === delivery.areaId) || null
   const areaStore = (area?.storeId && stores.find((st) => st.id === area.storeId)) || null
-  // Pickup comes from the area's own store. An area without one lets the
-  // customer choose; with a single store there's nothing to choose.
+
+  // Where an area is asked for, and whether it's required:
+  //   delivery, fixed state   required — it's the price
+  //   delivery, quote state   required if the state has a list, else the
+  //                           customer types their town
+  //   pickup, fixed state     required — it decides the store
+  //   pickup, quote state     not asked; they choose the store
+  const askArea = Boolean(state) && stateAreas.length > 0 && (method === "delivery" || fixedState)
+  const askTown = method === "delivery" && Boolean(state) && !fixedState && stateAreas.length === 0
+  const isQuoteState = method === "delivery" && Boolean(state) && !fixedState
+
   const pickupStore =
     method === "pickup"
       ? areaStore ||
         stores.find((st) => st.id === delivery.pickupPointId) ||
         (stores.length === 1 ? stores[0] : null)
       : null
-  const needsStoreChoice = method === "pickup" && Boolean(area) && !areaStore && stores.length > 1
+  const needsStoreChoice =
+    method === "pickup" && Boolean(state) && (!askArea || Boolean(area)) && !areaStore && stores.length > 1
 
-  const quoteReady = Boolean(area) && (method === "delivery" || Boolean(pickupStore))
+  // Typing a town re-quotes, but not on every keystroke.
+  const town = (shippingInfo.city || "").trim()
+  const debouncedTown = useDebounce(town, 400)
+
+  const quoteReady =
+    Boolean(state) &&
+    (!askArea || Boolean(area)) &&
+    (!askTown || Boolean(debouncedTown)) &&
+    (method === "delivery" || Boolean(pickupStore))
 
   const {
     data: quoteData,
@@ -129,12 +154,20 @@ export default function CheckoutPage() {
     isError: quoteFailed,
     refetch: retryQuote,
   } = useDeliveryQuote(
-    { method, areaId: area?.id, pickupPointId: pickupStore?.id },
+    {
+      method,
+      state,
+      areaId: area?.id,
+      city: askTown ? debouncedTown : null,
+      pickupPointId: pickupStore?.id,
+    },
     { enabled: quoteReady && !optionsLoading }
   )
   // Never show a quote for a different choice than the one on screen.
   const quote = quoteReady && !isPlaceholderData ? quoteData : null
   const deliveryKnown = quote?.ok === true
+  // Ok, but the fee is agreed later — never shown as "Free".
+  const feeToAgree = deliveryKnown && quote.pricing === "quote"
 
   // Until delivery is known it is left out of the total rather than guessed —
   // a number that jumps at the last step is what shoppers resent.
@@ -186,7 +219,7 @@ export default function CheckoutPage() {
   const cartSignature = `${items
     .map((i) => `${i.id}:${i.quantity}`)
     .sort()
-    .join('|')}#${coupon?.code || ''}#${method}|${area?.id || ''}|${pickupStore?.id || ''}`
+    .join('|')}#${coupon?.code || ''}#${method}|${state}|${area?.id || ''}|${pickupStore?.id || ''}`
 
   useEffect(() => {
     syncCartSignature(cartSignature)
@@ -251,15 +284,23 @@ export default function CheckoutPage() {
     updateDelivery({ areaId, pickupPointId: "" })
   }
 
+  const handleStateChange = (value) => {
+    // The area, town and any hand-picked store belonged to the old state.
+    updateShippingInfo({ state: value, city: "" })
+    updateDelivery({ areaId: "", pickupPointId: "" })
+  }
+
   // Field-level problems, shown once they've tried to continue.
   const missing = {
     firstName: !shippingInfo.firstName,
     lastName: !shippingInfo.lastName,
     email: !shippingInfo.email,
     phone: !shippingInfo.phone,
-    area: !area,
+    state: !state,
+    area: askArea && !area,
+    town: askTown && !town,
     address: method === "delivery" && !shippingInfo.address,
-    store: method === "pickup" && Boolean(area) && !pickupStore,
+    store: needsStoreChoice && !pickupStore,
   }
   const invalid = (field) => showErrors && missing[field]
 
@@ -270,7 +311,9 @@ export default function CheckoutPage() {
     if (Object.values(missing).some(Boolean)) {
       toast({
         title: "Missing information",
-        description: missing.area
+        description: missing.state
+          ? "Choose your state first."
+          : missing.area
           ? method === "pickup"
             ? "Choose your area so we know which store to send your order to."
             : "Choose your area so we can work out delivery."
@@ -300,10 +343,10 @@ export default function CheckoutPage() {
           id: item.id,
           quantity: item.quantity,
         })),
-        shippingInfo,
+        shippingInfo: { ...shippingInfo, state, city: area ? area.city : town },
         delivery: {
           method,
-          areaId: area.id,
+          areaId: area?.id || null,
           pickupPointId: pickupStore?.id || null,
         },
         orderNotes,
@@ -325,9 +368,15 @@ export default function CheckoutPage() {
 
   // What the summary says under "Delivery".
   const deliveryNote = (() => {
-    if (!area) return method === "pickup" ? "Choose your area to see your store" : "Choose your area to see the price"
-    if (method === "pickup") return pickupStore ? `Collect from ${pickupStore.name}` : "Choose a store"
-    return `To ${area.name}, Ibadan`
+    if (!state) return "Choose your state to see how delivery works"
+    if (method === "pickup") {
+      if (askArea && !area) return "Choose your area to see your store"
+      return pickupStore ? `Collect from ${pickupStore.name}` : "Choose a store"
+    }
+    if (askArea && !area) return "Choose your area to see the price"
+    if (feeToAgree) return "We'll call or WhatsApp you to agree it"
+    if (area) return `To ${area.name}, ${area.city}`
+    return null
   })()
 
   return (
@@ -414,7 +463,7 @@ export default function CheckoutPage() {
                     id="method-delivery"
                     icon={Truck}
                     title="Deliver to my door"
-                    description="Within Ibadan. The price depends on your area."
+                    description="Anywhere in Nigeria. Ibadan prices are fixed; elsewhere we agree the fee with you."
                   />
                   <MethodOption
                     value="pickup"
@@ -521,25 +570,77 @@ export default function CheckoutPage() {
                   </Field>
                 </div>
 
-                {/* Compulsory either way: it prices door delivery and decides
-                    which store a pickup goes to. */}
-                <Field data-invalid={invalid("area") || undefined}>
-                  <FieldLabel htmlFor="area">Your area in Ibadan *</FieldLabel>
-                  <AreaPicker
-                    id="area"
-                    value={area?.id || ""}
-                    onChange={handleAreaChange}
-                    areas={areas}
-                    stores={stores}
-                    method={method}
-                    invalid={invalid("area")}
-                  />
-                  <FieldDescription>
-                    {method === "pickup"
-                      ? "We'll send your order to the store nearest your area."
-                      : "We deliver within Ibadan. The price depends on your area."}
-                  </FieldDescription>
+                {/* State first: it decides how delivery is priced, and which
+                    areas there are to choose from. */}
+                <Field data-invalid={invalid("state") || undefined}>
+                  <FieldLabel htmlFor="state">State *</FieldLabel>
+                  <Select value={state} onValueChange={handleStateChange}>
+                    <SelectTrigger id="state" aria-invalid={invalid("state") || undefined}>
+                      <SelectValue placeholder="Choose your state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NIGERIAN_STATES.map((st) => (
+                        <SelectItem key={st} value={st}>
+                          {st}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
+
+                {askArea && (
+                  <Field data-invalid={invalid("area") || undefined}>
+                    <FieldLabel htmlFor="area">Your area *</FieldLabel>
+                    <AreaPicker
+                      id="area"
+                      value={area?.id || ""}
+                      onChange={handleAreaChange}
+                      areas={stateAreas}
+                      stores={stores}
+                      method={method}
+                      showPrices={fixedState}
+                      invalid={invalid("area")}
+                    />
+                    <FieldDescription>
+                      {method === "pickup"
+                        ? "We'll send your order to the store nearest your area."
+                        : fixedState
+                          ? "The delivery price depends on your area."
+                          : "Choose the area nearest you."}
+                    </FieldDescription>
+                  </Field>
+                )}
+
+                {askTown && (
+                  <Field data-invalid={invalid("town") || undefined}>
+                    <FieldLabel htmlFor="city">City or town *</FieldLabel>
+                    <Input
+                      id="city"
+                      autoComplete="address-level2"
+                      placeholder="e.g. Ikeja"
+                      value={shippingInfo.city || ""}
+                      onChange={(e) => handleShippingChange("city", e.target.value)}
+                      aria-invalid={invalid("town") || undefined}
+                      maxLength={80}
+                    />
+                  </Field>
+                )}
+
+                {/* Outside the fixed-price states the fee is agreed after the
+                    order. Said before they fill in the rest, not discovered on
+                    the summary. Informational, so not red. */}
+                {isQuoteState && (
+                  <Alert>
+                    <MessageCircle />
+                    <AlertTitle>We&apos;ll agree the delivery fee with you</AlertTitle>
+                    <AlertDescription>
+                      Delivery to {state} is priced per order. Place your order and pay for your
+                      items now. We&apos;ll call or WhatsApp you
+                      {shippingInfo.phone ? ` on ${shippingInfo.phone}` : ""} to agree the
+                      delivery fee and how to pay it before we send your order.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {method === "pickup" ? (
                   <>
@@ -662,6 +763,8 @@ export default function CheckoutPage() {
                   </div>
                   {quoteReady && quoting && !quote ? (
                     <Spinner className="text-muted-foreground" aria-label="Working out delivery" />
+                  ) : feeToAgree ? (
+                    <span className="shrink-0 font-medium">To be agreed</span>
                   ) : deliveryKnown ? (
                     totals.shipping === 0 ? (
                       <span className="font-medium text-success">Free</span>
@@ -717,12 +820,17 @@ export default function CheckoutPage() {
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between font-medium text-lg">
-                    <span>{deliveryKnown ? "Total" : "Total so far"}</span>
+                    <span>{feeToAgree ? "Total for your items" : deliveryKnown ? "Total" : "Total so far"}</span>
                     <span className="tabular-nums">{formatNaira(totals.total)}</span>
                   </div>
                   {!deliveryKnown && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       {method === "pickup" ? "Pickup" : "Delivery"} is added once it&apos;s worked out.
+                    </p>
+                  )}
+                  {feeToAgree && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      The delivery fee is agreed with you by call or WhatsApp and paid separately.
                     </p>
                   )}
                 </div>

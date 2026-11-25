@@ -79,9 +79,9 @@ export const useBestSellers = (limit = 4) =>
 // TanStack Query Hook - Delivery rate for a destination state (014).
 // A quote for display only: create-order resolves the fee again from the
 // order's state, so a tampered client can't ship to Sokoto at Lagos rates.
-// TanStack Query Hook - Delivery choices (029): which ways are on (door
-// delivery, store pickup), the Ibadan areas with their price and store, and
-// the active stores.
+// TanStack Query Hook - Delivery choices (029, 031): which ways are on (door
+// delivery, store pickup), every state with how it's priced, the areas with
+// their price and store, and the active stores.
 export const useDeliveryOptions = () =>
   useQuery({
     queryKey: ['delivery-options'],
@@ -95,14 +95,21 @@ export const useDeliveryOptions = () =>
     staleTime: 5 * 60 * 1000,
   })
 
-// TanStack Query Hook - Delivery quote (029): the chosen area's door-delivery
-// price, or its store's pickup fee. Display-only: create-order works it out
-// again on the server.
-//   input: { method, areaId, pickupPointId }
-//   enabled: false skips the request (no area chosen yet).
+// TanStack Query Hook - Delivery quote (029, 031): the chosen area's
+// door-delivery price, "to be agreed" in a quote state, or the store's pickup
+// fee. Display-only: create-order works it out again on the server.
+//   input: { method, state, areaId, city, pickupPointId }
+//   enabled: false skips the request (nothing chosen yet).
 export const useDeliveryQuote = (input, { enabled = true } = {}) =>
   useQuery({
-    queryKey: ['delivery-quote', input.method, input.areaId || '', input.pickupPointId || ''],
+    queryKey: [
+      'delivery-quote',
+      input.method,
+      input.state || '',
+      input.areaId || '',
+      input.city || '',
+      input.pickupPointId || '',
+    ],
     enabled,
     queryFn: async () => {
       const response = await fetch('/api/shop/delivery-quote', {
@@ -110,7 +117,9 @@ export const useDeliveryQuote = (input, { enabled = true } = {}) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           method: input.method,
+          state: input.state || null,
           areaId: input.areaId || null,
+          city: input.city || null,
           pickupPointId: input.pickupPointId || null,
         }),
       })

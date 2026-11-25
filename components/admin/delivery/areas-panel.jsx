@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { MapPinned, Pencil, Plus, Search, Trash2, TriangleAlert, X } from "lucide-react"
+import { MapPinned, MessageCircle, Pencil, Plus, Search, Trash2, TriangleAlert, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Spinner } from "@/components/ui/spinner"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -34,8 +34,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { NIGERIAN_STATES } from "@/lib/nigeria"
 import { cn } from "@/lib/utils"
 import {
+  AREA_CITY,
+  AREA_STATE,
   toFee,
   useAddAreas,
   useDeleteArea,
@@ -43,11 +46,13 @@ import {
   useUpdateAreas,
 } from "@/stores/deliveryAdminStore"
 
-// Areas (029): every Ibadan area customers can choose at checkout, with
-//   * its door-delivery price — blank means no door delivery there, so its
-//     customers collect instead
+// Areas (029, 031): the areas customers can choose at checkout, one state at
+// a time. Each has
+//   * its door-delivery price — used while its state has fixed prices; blank
+//     means no door delivery there, so its customers collect instead
 //   * the store its customers collect from — the nearest one
-// Both are edited right in the row, or for many areas at once.
+// Both are edited right in the row, or for many areas at once. Areas in a
+// state priced by call/WhatsApp can be prepared here before switching it.
 
 const NONE = "__none"
 const lower = (s) => String(s || "").toLowerCase()
@@ -158,9 +163,10 @@ function StoreSelect({ id, value, stores, onChange, label, className }) {
 }
 
 // ---------- Add areas ----------
-function AddAreasForm({ areas, stores, onDone }) {
+function AddAreasForm({ areas, stores, state, onDone }) {
   const { toast } = useToast()
   const add = useAddAreas()
+  const [city, setCity] = useState(state === AREA_STATE ? AREA_CITY : "")
   const [names, setNames] = useState("")
   const [fee, setFee] = useState("")
   const [storeId, setStoreId] = useState(null)
@@ -171,13 +177,16 @@ function AddAreasForm({ areas, stores, onDone }) {
     setError(null)
     const list = names.split(/\r?\n/).map((n) => n.trim()).filter(Boolean)
     if (!list.length) return setError("Type at least one area name.")
+    if (!city.trim()) return setError("Add the city or town these areas are in.")
     if (Number.isNaN(toFee(fee))) return setError("The delivery price must be ₦0 or more.")
     try {
       const { added, skipped } = await add.mutateAsync({
         names: list,
+        state,
+        city,
         delivery_fee: fee,
         pickup_point_id: storeId,
-        existing: areas.map((a) => a.name),
+        existing: areas.filter((a) => a.city.toLowerCase() === city.trim().toLowerCase()).map((a) => a.name),
       })
       toast({
         title: added === 1 ? "1 area added" : `${added} areas added`,
@@ -193,7 +202,7 @@ function AddAreasForm({ areas, stores, onDone }) {
     <form onSubmit={submit}>
       <DialogHeader>
         <DialogTitle>Add areas</DialogTitle>
-        <DialogDescription>Ibadan areas customers can choose at checkout.</DialogDescription>
+        <DialogDescription>Areas in {state} customers can choose at checkout.</DialogDescription>
       </DialogHeader>
       <FieldGroup className="mt-4">
         {error && (
@@ -202,6 +211,16 @@ function AddAreasForm({ areas, stores, onDone }) {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
+        <Field>
+          <FieldLabel htmlFor="new-areas-city">City or town</FieldLabel>
+          <Input
+            id="new-areas-city"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder={state === "Lagos" ? "e.g. Lagos" : "e.g. Ibadan"}
+            maxLength={80}
+          />
+        </Field>
         <Field>
           <FieldLabel htmlFor="new-areas">Area names</FieldLabel>
           <Textarea
@@ -351,12 +370,42 @@ function BulkBar({ count, stores, onApply, onClear, busy }) {
   )
 }
 
-export default function AreasPanel({ data }) {
+export default function AreasPanel({ data, state = AREA_STATE, onStateChange }) {
   const { toast } = useToast()
   const save = useSaveArea()
   const update = useUpdateAreas()
   const del = useDeleteArea()
-  const { areas, stores } = data
+  const { stores } = data
+  // One state at a time: the areas list, counts and filters are all for it.
+  const areas = useMemo(() => data.areas.filter((a) => a.state === state), [data.areas, state])
+  const mode =
+    (data.states || []).find((st) => st.state === state)?.pricing_mode ||
+    (state === AREA_STATE ? "fixed" : "quote")
+  const manyCities = new Set(areas.map((a) => a.city)).size > 1
+  const perState = useMemo(() => {
+    const m = new Map()
+    for (const a of data.areas) m.set(a.state, (m.get(a.state) || 0) + 1)
+    return m
+  }, [data.areas])
+  const pickState = (v) => {
+    setSelected(new Set())
+    onStateChange?.(v)
+  }
+  const stateSelect = (
+    <Select value={state} onValueChange={pickState}>
+      <SelectTrigger className="h-10 w-full sm:w-52" aria-label="State">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {NIGERIAN_STATES.map((st) => (
+          <SelectItem key={st} value={st}>
+            {st}
+            {perState.get(st) ? ` (${perState.get(st)})` : ""}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
 
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState("all")
@@ -428,14 +477,29 @@ export default function AreasPanel({ data }) {
 
   if (areas.length === 0) {
     return (
-      <>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">{stateSelect}</div>
+        {mode === "quote" && (
+          <Alert>
+            <MessageCircle />
+            <AlertTitle>{state} is priced by call or WhatsApp</AlertTitle>
+            <AlertDescription>
+              Customers here type their town at checkout, and you agree the delivery fee after they
+              order.
+            </AlertDescription>
+          </Alert>
+        )}
         <Empty className="rounded-xl border py-10">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <MapPinned />
             </EmptyMedia>
-            <EmptyTitle>No areas yet</EmptyTitle>
-            <EmptyDescription>Add the Ibadan areas you deliver to or serve from a store.</EmptyDescription>
+            <EmptyTitle>No areas in {state} yet</EmptyTitle>
+            <EmptyDescription>
+              {mode === "fixed"
+                ? `Add the areas you deliver to in ${state}, with a price for each.`
+                : `Optional while ${state} is priced by call or WhatsApp: customers type their town instead. Add areas to prepare fixed prices.`}
+            </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button size="sm" onClick={() => setAdding(true)}>
@@ -446,16 +510,17 @@ export default function AreasPanel({ data }) {
         </Empty>
         <Dialog open={adding} onOpenChange={setAdding}>
           <DialogContent className="sm:max-w-lg">
-            {adding && <AddAreasForm areas={areas} stores={stores} onDone={() => setAdding(false)} />}
+            {adding && <AddAreasForm areas={areas} stores={stores} state={state} onDone={() => setAdding(false)} />}
           </DialogContent>
         </Dialog>
-      </>
+      </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
+        {stateSelect}
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
@@ -483,6 +548,18 @@ export default function AreasPanel({ data }) {
           Add areas
         </Button>
       </div>
+
+      {mode === "quote" && (
+        <Alert>
+          <MessageCircle />
+          <AlertTitle>{state} is priced by call or WhatsApp</AlertTitle>
+          <AlertDescription>
+            Customers here choose an area if there are any, and you agree the delivery fee after
+            they order. Prices you set below are used once you switch {state} to fixed prices on
+            the States tab.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {selected.size > 0 && (
         <BulkBar
@@ -538,6 +615,7 @@ export default function AreasPanel({ data }) {
                 />
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-medium text-foreground">{a.name}</span>
+                  {manyCities && <span className="truncate text-xs text-muted-foreground">{a.city}</span>}
                   {a.aliases?.length > 0 && (
                     <span className="truncate text-xs text-muted-foreground">Also: {a.aliases.join(", ")}</span>
                   )}
@@ -600,7 +678,7 @@ export default function AreasPanel({ data }) {
 
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-lg">
-          {adding && <AddAreasForm areas={areas} stores={stores} onDone={() => setAdding(false)} />}
+          {adding && <AddAreasForm areas={areas} stores={stores} state={state} onDone={() => setAdding(false)} />}
         </DialogContent>
       </Dialog>
 

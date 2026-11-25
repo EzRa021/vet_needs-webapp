@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast"
 import { formatNaira } from "@/lib/pricing"
 import { statusMeta, FULFILMENT_FLOW, isTerminal } from "@/lib/order-status"
 import { cn } from "@/lib/utils"
+import { deliveryFeeLabel } from "@/lib/delivery"
 
 function Timeline({ status, method }) {
   if (isTerminal(status)) {
@@ -275,7 +276,7 @@ export default function OrderDetailPage() {
               <div className="flex flex-col">
                 {order.subtotal != null && <Row label="Subtotal">{formatNaira(order.subtotal)}</Row>}
                 {order.shipping_fee != null && (
-                  <Row label={isPickup ? "Pickup" : "Delivery"}>{formatNaira(order.shipping_fee)}</Row>
+                  <Row label={isPickup ? "Pickup" : "Delivery"}>{deliveryFeeLabel(order)}</Row>
                 )}
                 {order.tax_amount != null && Number(order.tax_amount) > 0 && (
                   <Row label="VAT added">{formatNaira(order.tax_amount)}</Row>

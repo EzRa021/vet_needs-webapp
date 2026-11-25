@@ -14,6 +14,7 @@ import { formatQuantity } from "@/lib/units"
 import { statusMeta } from "@/lib/order-status"
 import { LEGAL } from "@/lib/legal"
 import { cn } from "@/lib/utils"
+import { deliveryFeeLabel } from "@/lib/delivery"
 
 const formatDate = (value) =>
   new Date(value).toLocaleDateString("en-NG", {
@@ -144,7 +145,7 @@ function Invoice({ order, items }) {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">{order.fulfilment_method === "pickup" ? "Pickup" : "Delivery"}</dt>
               <dd className="tabular-nums">
-                {Number(order.shipping_fee) === 0 ? "Free" : formatNaira(order.shipping_fee)}
+                {deliveryFeeLabel(order)}
               </dd>
             </div>
           )}

@@ -52,6 +52,7 @@ import { formatNaira } from "@/lib/pricing"
 import { formatQuantity } from "@/lib/units"
 import { duration, fullDateTime, timeAgo } from "@/lib/relative-time"
 import { ALLOWED_TRANSITIONS, orderRef, parseShippingAddress } from "@/lib/order-status"
+import { deliveryFeeLabel, isQuoteDelivery } from "@/lib/delivery"
 
 const NEW_FOR_MS = 15 * 60 * 1000
 const FLASH_FOR_MS = 6 * 1000
@@ -185,9 +186,7 @@ function ExpandedOrder({ order, address }) {
         <div className="flex flex-col border-t pt-2">
           {order.subtotal != null && <Detail label="Subtotal">{formatNaira(order.subtotal)}</Detail>}
           {order.shipping_fee != null && (
-            <Detail label="Delivery">
-              {Number(order.shipping_fee) === 0 ? "Free" : formatNaira(order.shipping_fee)}
-            </Detail>
+            <Detail label="Delivery">{deliveryFeeLabel(order)}</Detail>
           )}
           {Number(order.tax_amount) > 0 && <Detail label="VAT added">{formatNaira(order.tax_amount)}</Detail>}
           {Number(order.discount_amount) > 0 && (
@@ -570,9 +569,11 @@ export default function OrdersTable({
                       ) : (
                         o.shipping_fee != null && (
                           <span className="text-xs tabular-nums text-muted-foreground">
-                            {Number(o.shipping_fee) === 0
-                              ? "Free delivery"
-                              : `${formatNaira(o.shipping_fee)} delivery`}
+                            {isQuoteDelivery(o)
+                              ? "Delivery fee to agree"
+                              : Number(o.shipping_fee) === 0
+                                ? "Free delivery"
+                                : `${formatNaira(o.shipping_fee)} delivery`}
                           </span>
                         )
                       )}

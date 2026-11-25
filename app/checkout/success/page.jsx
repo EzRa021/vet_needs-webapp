@@ -20,7 +20,7 @@ import CustomerOrderRealtime from "@/components/customer-order-realtime"
 import { createClient } from "@/lib/supabase/client"
 import { formatNaira } from "@/lib/pricing"
 import { statusMeta, isTerminal } from "@/lib/order-status"
-import { pickupCodeVisible } from "@/lib/delivery"
+import { deliveryFeeLabel, isQuoteDelivery, pickupCodeVisible } from "@/lib/delivery"
 import PickupPointCard from "@/components/pickup-point-card"
 
 const formatDate = (value) =>
@@ -253,9 +253,15 @@ export default function OrderSuccessPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{isPickup ? "Pickup" : "Delivery"}</span>
                 <span>
-                  {Number(order.shipping_fee) === 0 ? "Free" : formatNaira(order.shipping_fee)}
+                  {deliveryFeeLabel(order)}
                 </span>
               </div>
+            )}
+            {isQuoteDelivery(order) && (
+              <p className="text-xs text-muted-foreground">
+                We&apos;ll call or WhatsApp you to agree the delivery fee and how to pay it
+                before we send your order.
+              </p>
             )}
             {order.tax_amount != null && Number(order.tax_amount) > 0 && (
               <div className="flex justify-between">

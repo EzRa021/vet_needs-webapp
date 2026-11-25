@@ -1,11 +1,14 @@
 "use client"
 
-import { Banknote, LocateFixed, MapPin, Scale, Store, Truck, TriangleAlert } from "lucide-react"
+import { Banknote, LocateFixed, MapPin, MessageCircle, Phone, Scale, Store, Truck, TriangleAlert } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import PickupPointCard from "@/components/pickup-point-card"
-import { formatWeight, mapsLink } from "@/lib/delivery"
+import { customerWhatsappLink, formatWeight, isQuoteDelivery, mapsLink } from "@/lib/delivery"
+import { LEGAL } from "@/lib/legal"
+import { orderRef } from "@/lib/order-status"
 import { formatNaira } from "@/lib/pricing"
 
 function Line({ icon: Icon, label, children }) {
@@ -34,11 +37,25 @@ export default function DeliveryDetails({ order }) {
   const fee = d.fee === null || d.fee === undefined ? null : Number(d.fee)
   const where = d.area
     ? `${d.area.name}, ${d.area.city}`
-    : d.unlisted_city
+    : d.town
+      ? `${d.town}, ${d.state || ""}`
+      : d.unlisted_city
       ? `Not in the area list — somewhere in ${d.unlisted_city}`
       : d.matched_by === "state" || d.matched_by === "catch_all" || d.matched_by === "flat"
         ? "Priced by state"
         : null
+
+  // Delivery outside the fixed-price states (031): nobody has paid for it
+  // yet, and the order shouldn't leave until the fee is agreed.
+  const feeToAgree = isQuoteDelivery(order)
+  const phone = (order.shipping_address || "").match(/^Phone:\s*(.+)$/m)?.[1]?.trim() || ""
+  const firstName = (order.shipping_address || "").split("\n")[0]?.split(" ")[0] || ""
+  const whatsapp = feeToAgree
+    ? customerWhatsappLink(
+        phone,
+        `Hi${firstName ? ` ${firstName}` : ""}, this is ${LEGAL.brand} about your order ${orderRef(order.id)} for delivery to ${where || d.state || "you"}. Let's agree the delivery fee.`
+      )
+    : null
 
   return (
     <Card>
@@ -58,6 +75,36 @@ export default function DeliveryDetails({ order }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        {feeToAgree && (
+          <Alert className="border-earth/60 bg-earth/10">
+            <MessageCircle />
+            <AlertTitle>Delivery fee to agree</AlertTitle>
+            <AlertDescription className="flex flex-col gap-3">
+              <span>
+                This order is outside the fixed-price states, so the customer hasn&apos;t paid
+                for delivery. Agree the fee and how they&apos;ll pay it before you send it.
+              </span>
+              {phone && (
+                <span className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`tel:${phone.replace(/\s+/g, "")}`}>
+                      <Phone data-icon="inline-start" />
+                      Call {phone}
+                    </a>
+                  </Button>
+                  {whatsapp && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={whatsapp} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle data-icon="inline-start" />
+                        WhatsApp
+                      </a>
+                    </Button>
+                  )}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
         {isPickup ? (
           <>
             {d.area && (
@@ -97,6 +144,11 @@ export default function DeliveryDetails({ order }) {
           </>
         )}
 
+        {feeToAgree && (
+          <Line icon={Banknote} label="Delivery price">
+            <span>To be agreed with the customer</span>
+          </Line>
+        )}
         {fee !== null && (
           <Line icon={Banknote} label={isPickup ? "Pickup fee charged" : "Delivery price charged"}>
             <span className="tabular-nums">{fee > 0 ? formatNaira(fee) : "Free"}</span>

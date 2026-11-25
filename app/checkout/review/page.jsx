@@ -16,6 +16,7 @@ import { useCartStore } from "@/stores/cartStore"
 import { useCheckoutStore } from "@/stores/checkoutStore"
 import { useUser } from "@/stores/authStore"
 import { formatNaira } from "@/lib/pricing"
+import { isQuoteDelivery } from "@/lib/delivery"
 
 export default function ReviewOrderPage() {
   const router = useRouter()
@@ -41,6 +42,9 @@ export default function ReviewOrderPage() {
       }
     : cartTotals
   const isPickup = currentOrder?.fulfilment_method === "pickup"
+  // Delivery outside the fixed-price states: the fee is agreed after the
+  // order (031), so ₦0 here must not read "Free".
+  const feeToAgree = isQuoteDelivery(currentOrder)
 
   // No auth gate: guests get this far too (011). Holding `currentOrder` is what
   // proves they're mid-checkout, and its guest_token is what proves the order is
@@ -247,12 +251,20 @@ export default function ReviewOrderPage() {
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">{isPickup ? "Pickup" : "Delivery"}</span>
-                    {totals.shipping === 0 ? (
+                    {feeToAgree ? (
+                      <span className="font-medium">To be agreed</span>
+                    ) : totals.shipping === 0 ? (
                       <span className="font-medium text-success">Free</span>
                     ) : (
                       <span className="tabular-nums">{formatNaira(totals.shipping)}</span>
                     )}
                   </div>
+                  {feeToAgree && (
+                    <p className="text-xs text-muted-foreground">
+                      We&apos;ll call or WhatsApp you to agree the delivery fee and how to pay
+                      it before we send your order.
+                    </p>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">VAT</span>
                     <span>
@@ -265,7 +277,7 @@ export default function ReviewOrderPage() {
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between font-medium text-lg">
-                    <span>Total</span>
+                    <span>{feeToAgree ? "Total for your items" : "Total"}</span>
                     <span className="tabular-nums">{formatNaira(totals.total)}</span>
                   </div>
 

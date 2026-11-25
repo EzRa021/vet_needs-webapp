@@ -53,7 +53,13 @@ export default function MethodsCard({ data }) {
 
   const { areas, stores } = data
   const shown = areas.filter((a) => a.is_active)
-  const priced = shown.filter((a) => a.delivery_fee !== null).length
+  // Door delivery: fixed prices where a state uses them (031), a call or
+  // WhatsApp quote everywhere else.
+  const fixedStates = (data.states || [{ state: "Oyo", pricing_mode: "fixed" }])
+    .filter((s) => s.pricing_mode === "fixed")
+    .map((s) => s.state)
+  const inFixed = shown.filter((a) => fixedStates.includes(a.state))
+  const priced = inFixed.filter((a) => a.delivery_fee !== null).length
   const openStores = stores.filter((s) => s.is_active)
   const openIds = new Set(openStores.map((s) => s.id))
   const assigned = shown.filter((a) => openIds.has(a.pickup_point_id)).length
@@ -81,13 +87,22 @@ export default function MethodsCard({ data }) {
           busy={busy}
           onChange={toggle("doorstep_delivery_enabled", "Door delivery")}
           summary={
-            <>
-              <span className="font-medium text-foreground tabular-nums">{priced}</span> of{" "}
-              <span className="tabular-nums">{shown.length}</span> areas have a delivery price.
-              Areas without one are pickup only.
-            </>
+            fixedStates.length ? (
+              <>
+                Fixed prices in {fixedStates.join(", ")}:{" "}
+                <span className="font-medium text-foreground tabular-nums">{priced}</span> of{" "}
+                <span className="tabular-nums">{inFixed.length}</span> areas priced. Every other
+                state: fee agreed by call or WhatsApp.
+              </>
+            ) : (
+              "Every state: delivery fee agreed by call or WhatsApp after the order."
+            )
           }
-          warning={doorOn && priced === 0 ? "No area has a price yet, so customers can't choose delivery." : null}
+          warning={
+            doorOn && fixedStates.length && priced === 0
+              ? `No area has a price yet, so customers in ${fixedStates.join(", ")} get a quote by call or WhatsApp too.`
+              : null
+          }
         />
         <MethodRow
           id="store-pickup"

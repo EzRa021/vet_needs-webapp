@@ -85,8 +85,8 @@ export async function POST(request) {
     }
 
     // Validate shipping info. A pickup has no address to deliver to — only
-    // who's collecting and how to reach them. The city and state come from
-    // the chosen area (029), not from the form.
+    // who's collecting and how to reach them. The state and the area or
+    // town are checked by quoteDelivery below (031).
     const required =
       method === 'pickup'
         ? ['firstName', 'lastName', 'email', 'phone']
@@ -205,7 +205,9 @@ export async function POST(request) {
     // price for Moniya.
     const quote = await quoteDelivery({
       method,
+      state: typeof shippingInfo.state === 'string' ? shippingInfo.state : null,
       areaId: isUuid(delivery?.areaId) ? delivery.areaId : null,
+      city: typeof shippingInfo.city === 'string' ? shippingInfo.city : null,
       pickupPointId: isUuid(delivery?.pickupPointId) ? delivery.pickupPointId : null,
     })
     if (!quote.ok) {
@@ -222,10 +224,11 @@ export async function POST(request) {
 
     const clip = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '')
     const landmark = method === 'delivery' ? clip(shippingInfo.landmark, 200) : ''
-    // The area decides the city and state, so the address on the order always
-    // matches the price that was charged.
-    const city = quote.area.city
-    const state = quote.area.state
+    // The state and town come from the quote — the chosen area's city, or the
+    // town typed in a quote state — so the address on the order always
+    // matches what was priced.
+    const city = quote.town
+    const state = quote.state
 
     // Kept in the fixed line layout parseShippingAddress() reads: name first,
     // "City, State" just above the country, Email/Phone last.
@@ -257,13 +260,21 @@ export async function POST(request) {
 
     // How the fee was worked out, frozen on the order. Staff see it on the
     // order page; editing prices later never rewrites it.
+    //   pricing 'fixed'  fee is the area's price, charged now
+    //   pricing 'quote'  fee is null: staff agree it by call/WhatsApp (031)
     const deliverySnapshot = {
       method,
+      state: quote.state,
       area: quote.area,
-      fee: quote.fee,
       ...(method === 'delivery'
-        ? { landmark: landmark || null }
+        ? {
+            pricing: quote.pricing,
+            town: quote.town,
+            fee: quote.pricing === 'quote' ? null : quote.fee,
+            landmark: landmark || null,
+          }
         : {
+            fee: quote.fee,
             pickup_point: {
               id: point.id,
               name: point.name,
