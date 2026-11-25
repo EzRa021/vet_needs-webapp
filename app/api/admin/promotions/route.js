@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getStaffUser } from '@/lib/auth/admin'
 import { parseAdminBody, PromotionCreateSchema } from '@/lib/validation/admin'
 
-export const PLACEMENTS = ['home_hero', 'home_banner', 'shop_banner', 'popup']
+export const PLACEMENTS = ['home_hero', 'home_tile', 'home_banner', 'shop_banner', 'popup']
 
 function buildPayload(body) {
   const out = {}

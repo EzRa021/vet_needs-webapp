@@ -83,6 +83,13 @@ export async function GET(request) {
         query = query.eq('is_featured', true)
       }
 
+      // ?onSale=true — has a "was" price. Whether it's actually higher than
+      // today's price is checked by the caller: PostgREST can't compare two
+      // columns, and a stale compare_at_price below the price isn't a sale.
+      if (searchParams.get('onSale') === 'true') {
+        query = query.not('compare_at_price', 'is', null)
+      }
+
       // ?ids=a,b,c — hydrate a client-held list of ids (recently viewed lives in
       // localStorage, so the browser knows the ids but nothing else). Capped and
       // uuid-checked: this is a public endpoint taking a list.

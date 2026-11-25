@@ -10,25 +10,20 @@ import BrandImage from "@/components/brand-image"
 import WishlistButton from "@/components/wishlist-button"
 import { useToast } from "@/hooks/use-toast"
 import { useCartStore } from "@/stores/cartStore"
-import { formatNaira, formatUnitPrice } from "@/lib/pricing"
+import { formatNaira } from "@/lib/pricing"
+import { cn } from "@/lib/utils"
 
-// Shared product card — used on home, shop grid, category and related sections
-// so every product looks identical across the store.
-export default function ProductCard({ item }) {
+// Add-to-cart shared by every place that sells one product in one tap (the
+// card, the home page deal), so the cart always gets the same fields.
+export function useQuickAdd(item) {
   const { toast } = useToast()
   const addToCart = useCartStore((state) => state.addItem)
   const [added, setAdded] = useState(false)
+  const outOfStock = Number(item?.stock) === 0 && !item?.allow_backorder
 
-  const stock = Number(item.stock)
-  const outOfStock = stock === 0 && !item.allow_backorder
-  const lowStock = !outOfStock && stock > 0 && stock < (item.low_stock_threshold ?? 10)
-  const hasDiscount = item.compare_at_price && Number(item.compare_at_price) > Number(item.price)
-  const discountPercent = hasDiscount
-    ? Math.round((1 - item.price / item.compare_at_price) * 100)
-    : 0
-
-  const handleAddToCart = (e) => {
-    e.preventDefault()
+  const add = (e) => {
+    e?.preventDefault?.()
+    if (!item || outOfStock) return
     addToCart({
       id: item.id,
       name: item.name,
@@ -52,91 +47,167 @@ export default function ProductCard({ item }) {
     })
   }
 
-  return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-card-hover">
-      <Link href={`/product/${item.id}`} className="block" aria-label={item.name}>
-        <div className="relative aspect-square overflow-hidden bg-surface-2">
-          <BrandImage
-            src={item.image_url}
-            alt={item.name}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            placeholderLabel={item.name}
-          />
+  return { add, added, outOfStock }
+}
 
-          {/* Badges */}
-          <div className="absolute left-2.5 top-2.5 flex flex-col gap-1.5">
-            {hasDiscount && (
-              <Badge className="border-transparent bg-earth text-earth-foreground shadow-sm">
-                -{discountPercent}%
-              </Badge>
-            )}
-            {lowStock && (
-              <Badge variant="destructive" className="shadow-sm">
-                Only {stock}
-                {item.unit_type === "kg" ? " kg" : ""} left
-              </Badge>
-            )}
-            {outOfStock && (
-              <Badge variant="secondary" className="shadow-sm">Out of Stock</Badge>
-            )}
-          </div>
+// The one product card — home, shop grid, category pages, rails, lists — so a
+// product looks the same everywhere in the store.
+//
+// Compact, marketplace-style (2026-11-25, client's brief): what it's for, what
+// it is, the picture, then the price with a one-tap add. Packshots are shown
+// whole (object-contain on white) — a cropped feed bag hides the brand and the
+// size, which is what people are reading.
+//
+// layout="grid" (default) stacks; layout="row" puts the picture on the left,
+// for best sellers and short lists where many products share little space.
+export default function ProductCard({ item, layout = "grid", className = "" }) {
+  const { add: handleAddToCart, added, outOfStock } = useQuickAdd(item)
 
-          <WishlistButton
-            itemId={item.id}
-            itemName={item.name}
-            revealOnHover
-            className="absolute right-2.5 top-2.5 h-8 w-8 rounded-full bg-card/90 shadow-sm backdrop-blur"
-          />
-        </div>
-      </Link>
+  const stock = Number(item.stock)
+  const lowStock = !outOfStock && stock > 0 && stock < (item.low_stock_threshold ?? 10)
+  const hasDiscount = item.compare_at_price && Number(item.compare_at_price) > Number(item.price)
+  const discountPercent = hasDiscount
+    ? Math.round((1 - item.price / item.compare_at_price) * 100)
+    : 0
+  const href = `/product/${item.id}`
 
-      <div className="flex flex-1 flex-col p-4">
-        {item.category?.name && (
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {item.category.name}
+  const category = item.category?.name ? (
+    <p className="truncate text-xs text-muted-foreground">{item.category.name}</p>
+  ) : (
+    // Same height either way, so titles line up across a row.
+    <p className="h-4" aria-hidden="true" />
+  )
+
+  const title = (
+    <Link href={href} className="focus-visible:outline-none">
+      <h3 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 transition-colors group-hover:text-primary">
+        {item.name}
+      </h3>
+    </Link>
+  )
+
+  const priceRow = (
+    <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+      <div className="min-w-0">
+        {hasDiscount && (
+          <p className="text-xs tabular-nums text-muted-foreground line-through">
+            {formatNaira(item.compare_at_price)}
           </p>
         )}
-        <Link href={`/product/${item.id}`}>
-          <h3 className="line-clamp-1 font-semibold leading-snug transition-colors group-hover:text-primary">
-            {item.name}
-          </h3>
-        </Link>
-
-        {item.rating_count > 0 ? (
-          <div className="mt-1 flex items-center gap-1 text-xs">
-            <Star className="h-3.5 w-3.5 fill-earth text-earth" />
-            <span className="font-medium">{Number(item.rating_avg).toFixed(1)}</span>
-            <span className="text-muted-foreground">({item.rating_count})</span>
-          </div>
-        ) : (
-          <div className="mt-1 h-[18px]" />
+        {/* Unit on its own line: "₦2,800.00 / kg" didn't fit beside the add
+            button on a phone and was cut to "₦2,800…". */}
+        <p className="truncate font-display text-[0.9375rem] font-bold tabular-nums sm:text-lg">
+          {formatNaira(item.price)}
+          {item.unit_type === "kg" && (
+            <span className="ml-1 font-sans text-xs font-medium text-muted-foreground">per kg</span>
+          )}
+        </p>
+        {item.rating_count > 0 && (
+          <p className="mt-0.5 flex items-center gap-1 text-xs">
+            <Star className="size-3.5 fill-earth text-earth" aria-hidden="true" />
+            <span className="font-medium tabular-nums">{Number(item.rating_avg).toFixed(1)}</span>
+            <span className="tabular-nums text-muted-foreground">({item.rating_count})</span>
+            <span className="sr-only">out of 5 stars</span>
+          </p>
         )}
+      </div>
+      <Button
+        size="icon"
+        onClick={handleAddToCart}
+        disabled={outOfStock}
+        aria-label={outOfStock ? `${item.name} is out of stock` : `Add ${item.name} to cart`}
+        className="size-11 shrink-0 rounded-full transition-transform active:scale-95 lg:size-10"
+      >
+        {added ? <Check /> : <Plus />}
+      </Button>
+    </div>
+  )
 
-        {/* Price + quick add */}
-        <div className="mt-3 flex items-end justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold tabular-nums text-primary">
-              {formatUnitPrice(item.price, item.unit_type)}
-            </p>
-            {hasDiscount && (
-              <p className="text-xs tabular-nums text-muted-foreground line-through">
-                {formatNaira(item.compare_at_price)}
-              </p>
-            )}
-          </div>
-          <Button
-            size="icon"
-            onClick={handleAddToCart}
-            disabled={outOfStock}
-            aria-label={`Add ${item.name} to cart`}
-            className="h-10 w-10 shrink-0 rounded-full shadow-sm transition-transform active:scale-95"
-          >
-            {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          </Button>
+  const badges = (
+    <div className="pointer-events-none absolute left-1.5 top-1.5 flex flex-col items-start gap-1">
+      {hasDiscount && (
+        <Badge className="border-transparent bg-earth px-1.5 text-earth-foreground tabular-nums">
+          -{discountPercent}%
+        </Badge>
+      )}
+      {lowStock && (
+        <Badge variant="destructive" className="px-1.5">
+          Only {stock}
+          {item.unit_type === "kg" ? " kg" : ""} left
+        </Badge>
+      )}
+      {outOfStock && (
+        <Badge variant="secondary" className="px-1.5">Out of stock</Badge>
+      )}
+    </div>
+  )
+
+  if (layout === "row") {
+    return (
+      <div
+        className={cn(
+          "group relative flex gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/40",
+          className
+        )}
+      >
+        <Link
+          href={href}
+          aria-label={item.name}
+          className="relative size-24 shrink-0 overflow-hidden rounded-lg bg-white sm:size-28"
+        >
+          <BrandImage
+            src={item.image_url}
+            alt=""
+            fill
+            sizes="112px"
+            className="object-contain p-1.5"
+            placeholderLabel=""
+          />
+          {badges}
+        </Link>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {category}
+          {title}
+          {priceRow}
         </div>
       </div>
+    )
+  }
+
+  return (
+    <div
+      className={cn(
+        "group relative flex h-full flex-col rounded-xl border bg-card p-3 transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-card-hover",
+        className
+      )}
+    >
+      {category}
+      {title}
+
+      <Link
+        href={href}
+        aria-label={item.name}
+        className="relative mt-2 block aspect-square overflow-hidden rounded-lg bg-white"
+      >
+        <BrandImage
+          src={item.image_url}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px"
+          className="object-contain p-2 transition-transform duration-300 group-hover:scale-[1.03]"
+          placeholderLabel={item.name}
+        />
+        {badges}
+      </Link>
+
+      <WishlistButton
+        itemId={item.id}
+        itemName={item.name}
+        revealOnHover
+        className="absolute right-[1.125rem] top-[5.125rem] size-8 rounded-full bg-card/90 shadow-sm backdrop-blur"
+      />
+
+      {priceRow}
     </div>
   )
 }

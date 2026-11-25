@@ -38,6 +38,8 @@
 
     --success: 122 39% 49%;          /* #4CAF50 — stays green: it means "done", not brand */
     --success-foreground: 0 0% 100%;
+    --whatsapp: 173 77% 32%;         /* WhatsApp teal — white on it is 4.1:1 (success green was 2.8:1) */
+    --whatsapp-foreground: 0 0% 100%;
 
     --earth: 39 51% 53%;             /* #C49A4A warm gold */
     --earth-foreground: 30 45% 14%;
@@ -98,6 +100,8 @@
 
     --success: 122 39% 55%;
     --success-foreground: 214 32% 8%;
+    --whatsapp: 173 77% 32%;
+    --whatsapp-foreground: 0 0% 100%;
 
     --earth: 39 50% 60%;
     --earth-foreground: 30 45% 12%;

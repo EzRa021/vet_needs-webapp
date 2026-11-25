@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils"
 // it ("Christmas sales" with a dog and cat you could barely see).
 // object-contain keeps any shape of picture uncropped: a cut-out PNG floats
 // on the brand blue, a photo sits in its own frame.
-export default function PromoBanner({ placement, className }) {
+export default function PromoBanner({ placement, className = "" }) {
   const { promotion, isLoading } = usePromotion(placement)
 
   if (isLoading) {

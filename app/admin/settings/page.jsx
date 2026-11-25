@@ -174,9 +174,17 @@ export default function AdminSettingsPage() {
                   <FieldLabel htmlFor="support_phone">Support phone</FieldLabel>
                   <Input
                     id="support_phone"
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="0803 123 4567"
                     value={form.support_phone ?? ""}
                     onChange={setInput("support_phone")}
                   />
+                  <FieldDescription>
+                    Shown large in the shop&apos;s footer, and used for the green WhatsApp chat
+                    button on every page, so use a number that&apos;s on WhatsApp. Leave it empty
+                    to hide both.
+                  </FieldDescription>
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="currency">Currency</FieldLabel>

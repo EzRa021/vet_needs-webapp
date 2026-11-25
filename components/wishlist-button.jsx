@@ -78,7 +78,9 @@ export default function WishlistButton({
         saved ? "text-primary" : "text-muted-foreground hover:text-primary",
         revealOnHover &&
           !saved &&
-          "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+          // Hidden until hover only where hovering exists. Phones and
+          // tablets can't hover, so there it simply shows.
+          "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100",
         className
       )}
     >

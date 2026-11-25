@@ -27,6 +27,10 @@ module.exports = {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
         },
+        whatsapp: {
+          DEFAULT: "hsl(var(--whatsapp))",
+          foreground: "hsl(var(--whatsapp-foreground))",
+        },
         earth: {
           DEFAULT: "hsl(var(--earth))",
           foreground: "hsl(var(--earth-foreground))",

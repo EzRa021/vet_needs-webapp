@@ -52,7 +52,8 @@ import { useAdminPromotions, useSavePromotion, useDeletePromotion } from "@/stor
 import { useToast } from "@/hooks/use-toast"
 
 const PLACEMENTS = [
-  { value: "home_hero", label: "Home hero", hint: "The big banner at the top of the home page" },
+  { value: "home_hero", label: "Home slider", hint: "A slide at the top of the home page. Add several and they take turns." },
+  { value: "home_tile", label: "Home tile", hint: "One of three small tiles under the slider: a picture, a short line and \"Shop now\". Needs a picture." },
   { value: "home_banner", label: "Home banner", hint: "A strip further down the home page" },
   { value: "shop_banner", label: "Shop banner", hint: "Above the product grid" },
   { value: "popup", label: "Popup", hint: "Overlay shown on arrival" },

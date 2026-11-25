@@ -146,11 +146,31 @@ shadcn/ui (new-york, radix base) — see `components.json`. Compose, don't reinv
 
 **Components of record**
 - `components/product-card.jsx` — the only product card, used everywhere.
+  Compact marketplace card (2026-11-25): category, 2-line title, packshot
+  `object-contain` on white, price + round 44px add button. `layout="row"`
+  (picture left) for best sellers and short lists. `useQuickAdd(item)` is
+  the shared one-tap add.
+- `components/product-rail.jsx` — swipeable row (scroll-snap, arrows ≥ md).
 - `components/brand-image.jsx` — all imagery; `#F5F7F2` placeholder fallback.
 - `components/auth-shell.jsx` — split-screen auth layout.
 - `components/admin/admin-nav.js` — admin nav registry (new module = one entry).
 - `lib/pricing.js` — **all** money maths/formatting (NGN).
 - `lib/order-status.js` — order status labels/colours/copy.
+
+---
+
+## Home page (2026-11-25, client's brief: "like a marketplace")
+
+Products on the first screen. Order: category menu (lg) + slider (all live
+`home_hero` promotions; default message when none) → category chips (< lg) →
+three tiles (`home_tile` promotions, categories fill in) → best deal (biggest
+real discount, the stamp) beside tabs (New arrivals, Featured, categories
+with ≥ 3 products; whole rows only) → best sellers (≥ 3 sold) → home banner →
+recently viewed → trust strip → delivery → reviews → short lists.
+**Every section hides itself when it has too little** — a small catalogue
+must never look empty or repeat. Floating WhatsApp button (`--whatsapp`
+token, white 4.1:1) appears only once Admin → Settings has a real support
+phone; placeholders like 0800 000 0000 are ignored.
 
 ---
 

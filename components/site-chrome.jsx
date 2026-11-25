@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import PromoPopup from "@/components/promo-popup"
+import WhatsappFab from "@/components/whatsapp-fab"
 
 // Routes that render their own full-page shell and must NOT get the
 // storefront header/footer:
@@ -45,6 +46,9 @@ export function SiteFooter() {
           already buying to advertise at them is how you lose the sale you
           already had. */}
       {!isCheckout(pathname) && <PromoPopup />}
+      {/* Not on cart/checkout either: it would sit over the order summary
+          and the pay button on a phone. */}
+      {!isCheckout(pathname) && <WhatsappFab />}
     </>
   )
 }

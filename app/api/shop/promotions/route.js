@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const PLACEMENTS = ['home_hero', 'home_banner', 'shop_banner', 'popup']
+const PLACEMENTS = ['home_hero', 'home_tile', 'home_banner', 'shop_banner', 'popup']
 
 // GET /api/shop/promotions[?placement=home_hero]
 // Public. Uses the anon/session client on purpose so the "live promotions

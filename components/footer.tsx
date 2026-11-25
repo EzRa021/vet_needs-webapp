@@ -19,6 +19,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { LEGAL, whatsappLink } from "@/lib/legal"
+import { realPhoneDigits } from "@/lib/delivery"
+import { useStoreSettings } from "@/stores/shopStore"
+import { useHydrated } from "@/hooks/use-hydrated"
 import BrandLogo from "@/components/brand-logo"
 
 const SHOP_LINKS = [
@@ -41,7 +44,20 @@ const SUPPORT_LINKS = [
 
 export default function Footer() {
   const { toast } = useToast()
-  const whatsapp = whatsappLink("Hi Jvigor — I have a question about")
+  // The support phone staff set in Admin → Settings. It replaces the
+  // placeholder number that used to show here, and doubles as the WhatsApp
+  // number (as the floating chat button does) unless one is set in legal.js.
+  const { settings } = useStoreSettings()
+  // Shared with the header, so possibly cached before the footer hydrates —
+  // the server never has it. Match the server's first render.
+  const hydrated = useHydrated()
+  const phoneDigits = hydrated ? realPhoneDigits(settings?.support_phone) : null
+  const phone = phoneDigits ? String(settings?.support_phone).trim() : ""
+  const whatsapp =
+    whatsappLink("Hi Jvigor — I have a question about") ||
+    (phoneDigits
+      ? `https://wa.me/${phoneDigits}?text=${encodeURIComponent("Hi Jvigor — I have a question about")}`
+      : null)
   const [email, setEmail] = useState("")
   const [subscribing, setSubscribing] = useState(false)
   const [honeypot, setHoneypot] = useState("") // bots fill this; humans can't see it
@@ -203,10 +219,22 @@ export default function Footer() {
                 <Mail className="h-4 w-4 shrink-0" />
                 {LEGAL.supportEmail}
               </p>
-              <p className="flex items-center gap-2">
-                <Phone className="h-4 w-4 shrink-0" />
-                {LEGAL.supportPhone}
-              </p>
+              {phone && (
+                <a
+                  href={`tel:${phone.replace(/[^\d+]/g, "")}`}
+                  className="group flex items-center gap-3 py-1"
+                >
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Phone className="size-5" aria-hidden="true" />
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="text-xs">Questions? Call us</span>
+                    <span className="font-display text-xl font-bold tabular-nums text-foreground group-hover:text-primary">
+                      {phone}
+                    </span>
+                  </span>
+                </a>
+              )}
               {/* Click-to-chat: customer-initiated, so no API, no approval, no
                   risk to the number. Renders only once a real number is set. */}
               {whatsapp && (
