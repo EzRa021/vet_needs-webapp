@@ -10,6 +10,7 @@ import BrandImage from "@/components/brand-image"
 import WishlistButton from "@/components/wishlist-button"
 import { useToast } from "@/hooks/use-toast"
 import { useCartStore } from "@/stores/cartStore"
+import { showAddedToCart } from "@/stores/cartDrawerStore"
 import { formatNaira } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
 
@@ -41,10 +42,14 @@ export function useQuickAdd(item) {
     })
     setAdded(true)
     setTimeout(() => setAdded(false), 1400)
-    toast({
-      title: "Added to cart",
-      description: `${item.name} has been added to your cart.`,
-    })
+    // The cart drawer slides in and says it; a toast is only the fallback
+    // for a page without the drawer.
+    if (!showAddedToCart(item.id)) {
+      toast({
+        title: "Added to cart",
+        description: `${item.name} has been added to your cart.`,
+      })
+    }
   }
 
   return { add, added, outOfStock }

@@ -7,6 +7,7 @@ import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import BrandImage from "@/components/brand-image"
 import { usePromotion } from "@/stores/shopStore"
+import { useCartDrawer } from "@/stores/cartDrawerStore"
 
 // How long a closed popup stays away, set per popup in the admin (035):
 //   visit  comes back on the next visit or refresh
@@ -68,7 +69,12 @@ export default function PromoPopup() {
     if (!promotion?.id) return
     if (dismissedRecently(promotion)) return
 
-    const t = setTimeout(() => setOpen(true), DELAY_MS)
+    const t = setTimeout(() => {
+      // Someone who has just added to the cart is already buying: don't put
+      // an advert over their cart drawer.
+      if (useCartDrawer.getState().open) return
+      setOpen(true)
+    }, DELAY_MS)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promotion?.id, promotion && versionOf(promotion)])

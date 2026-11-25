@@ -145,6 +145,12 @@ shadcn/ui (new-york, radix base) — see `components.json`. Compose, don't reinv
 - CRUD is independent pages: `/list`, `/new`, `/[id]`, `/[id]/edit`.
 
 **Components of record**
+- `components/cart-drawer.jsx` — the cart from the side (2026-11-25). Opens on
+  every "Add to cart" (`showAddedToCart(id)` in `stores/cartDrawerStore.js`)
+  and from the header cart button; not mounted on /cart or /checkout, where
+  callers fall back to a toast and the header button goes to /cart. Lines:
+  packshot, name, unit price, 44px stepper, bin; footer: free-delivery nudge,
+  subtotal, View cart + Checkout. The promo popup never opens over it.
 - `components/product-card.jsx` — the only product card, used everywhere.
   Compact marketplace card (2026-11-25): category, 2-line title, packshot
   `object-contain` on white, price + round 44px add button. `layout="row"`

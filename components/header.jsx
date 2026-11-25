@@ -34,6 +34,7 @@ import ThemeToggle from "@/components/theme-toggle"
 import SearchAutocomplete from "@/components/search-autocomplete"
 import { useUser, useLogout } from "@/stores/authStore"
 import { useCartStore } from "@/stores/cartStore"
+import { showCart } from "@/stores/cartDrawerStore"
 import { useWishlistIds } from "@/stores/wishlistStore"
 import { useTaxonomy } from "@/stores/shopStore"
 import { useIsStaff } from "@/stores/adminStore"
@@ -261,7 +262,16 @@ export default function Header() {
               )}
 
               <Button variant="ghost" size="icon" className={`group relative h-11 w-11 shrink-0 rounded-full ${ON_HEADER}`} asChild>
-                <Link href="/cart" aria-label={`Cart, ${cartCount} items`}>
+                <Link
+                  href="/cart"
+                  aria-label={`Cart, ${cartCount} items`}
+                  // Opens the cart drawer where there is one; a modified click
+                  // (new tab) and the cart/checkout pages still go to /cart.
+                  onClick={(e) => {
+                    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                    if (showCart()) e.preventDefault()
+                  }}
+                >
                   <ShoppingCart className="h-5 w-5 transition-transform group-hover:scale-110" />
                   {cartCount > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-earth px-1 text-[11px] font-bold tabular-nums text-earth-foreground shadow">

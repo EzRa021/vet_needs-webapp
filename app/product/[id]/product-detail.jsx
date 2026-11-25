@@ -28,6 +28,7 @@ import {
 } from "@/stores/recentlyViewedStore"
 import { useItem } from "@/stores/shopStore"
 import { useCartStore } from "@/stores/cartStore"
+import { showAddedToCart } from "@/stores/cartDrawerStore"
 import { formatNaira, formatUnitPrice, SHIPPING_FLAT } from "@/lib/pricing"
 
 // Products from the same category (excluding the current one)
@@ -85,10 +86,14 @@ export default function ProductDetail() {
       vat_rate: item.vat_rate,
       vat_inclusive: item.vat_inclusive,
     })
-    toast({
-      title: "Added to cart",
-      description: `${formatQuantity(quantity, item.unit_type)} × ${item.name} added to your cart.`,
-    })
+    // Opens the cart drawer on it; the toast is the fallback for a page
+    // without the drawer.
+    if (!showAddedToCart(item.id)) {
+      toast({
+        title: "Added to cart",
+        description: `${formatQuantity(quantity, item.unit_type)} × ${item.name} added to your cart.`,
+      })
+    }
   }
 
   if (isLoading) {

@@ -5,6 +5,7 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import PromoPopup from "@/components/promo-popup"
 import WhatsappFab from "@/components/whatsapp-fab"
+import CartDrawer from "@/components/cart-drawer"
 
 // Routes that render their own full-page shell and must NOT get the
 // storefront header/footer:
@@ -49,6 +50,10 @@ export function SiteFooter() {
       {/* Not on cart/checkout either: it would sit over the order summary
           and the pay button on a phone. */}
       {!isCheckout(pathname) && <WhatsappFab />}
+      {/* Opens on "Add to cart" and from the header's cart button. Not on
+          the cart or checkout: there it would only cover the cart itself, so
+          the header button simply goes to /cart. */}
+      {!isCheckout(pathname) && <CartDrawer />}
     </>
   )
 }
