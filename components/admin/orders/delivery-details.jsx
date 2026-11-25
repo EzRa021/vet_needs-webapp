@@ -76,7 +76,7 @@ export default function DeliveryDetails({ order }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {feeToAgree && (
-          <Alert className="border-earth/60 bg-earth/10">
+          <Alert className="border-earth/60 bg-earth/10 [&>svg]:text-earth">
             <MessageCircle />
             <AlertTitle>Delivery fee to agree</AlertTitle>
             <AlertDescription className="flex flex-col gap-3">

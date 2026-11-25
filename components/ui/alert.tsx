@@ -3,8 +3,13 @@ import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 
+// The icon is pinned at 16px with a 12px gap to the text (left-4 + size-4,
+// text indented pl-7). Lucide icons default to 24px, which ate the gap and
+// left the icon touching the words. It takes the brand colour; the
+// destructive variant overrides it, and an alert can tint it itself with
+// [&>svg]:text-… (e.g. the gold "Delivery fee to agree" notice).
 const alertVariants = cva(
-  'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground',
+  'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:size-4 [&>svg]:text-primary',
   {
     variants: {
       variant: {
