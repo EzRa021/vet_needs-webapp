@@ -4,9 +4,9 @@ import { loadDeliveryOptions } from '@/lib/delivery-server'
 
 // GET /api/shop/delivery-options
 //
-// The checkout's delivery choices: active pickup points and, while area
-// pricing is on, the priced areas grouped by city. Prices themselves come from
-// /api/shop/delivery-quote, because they depend on the cart's weight.
+// The checkout's delivery choices (029): which ways are switched on, the
+// Ibadan areas with their door-delivery price and pickup store, and the
+// active stores. create-order prices the order again on the server.
 export async function GET() {
   try {
     const data = await loadDeliveryOptions()

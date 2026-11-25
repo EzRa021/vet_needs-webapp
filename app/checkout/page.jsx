@@ -3,16 +3,16 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { CircleAlert, Loader2, Store, Truck } from "lucide-react"
+import { CircleAlert, Loader2, RotateCw, Store, Truck } from "lucide-react"
 import { formatNaira } from "@/lib/pricing"
-import { NIGERIAN_STATES, formatAddress } from "@/lib/nigeria"
-import { formatWeight } from "@/lib/delivery"
+import { formatAddress } from "@/lib/nigeria"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
+import { Skeleton } from "@/components/ui/skeleton"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Field,
@@ -26,7 +26,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import CheckoutSteps from "@/components/checkout-steps"
 import AreaPicker from "@/components/checkout/area-picker"
-import LocationButton from "@/components/checkout/location-button"
 import PickupPointCard from "@/components/pickup-point-card"
 import { useDeliveryOptions, useDeliveryQuote } from "@/stores/shopStore"
 import { useCartStore } from "@/stores/cartStore"
@@ -37,10 +36,6 @@ import {
   addressToShippingInfo,
 } from "@/stores/addressStore"
 import { useUser } from "@/stores/authStore"
-import { useDebounce } from "@/hooks/use-debounce"
-import { cn } from "@/lib/utils"
-
-const sameText = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase()
 
 // A choice card: the whole card is the label, so the tap target is the card,
 // not the 16px radio dot.
@@ -89,42 +84,43 @@ export default function CheckoutPage() {
 
   const createOrder = useCreateOrder()
 
-  // ---- Delivery choices (028) -------------------------------------------
-  const { data: options, isLoading: optionsLoading } = useDeliveryOptions()
-  const pickupPoints = options?.pickupPoints || []
-  const canPickup = pickupPoints.length > 0
-  const method = canPickup && delivery.method === "pickup" ? "pickup" : "delivery"
-  const pickupPoint = pickupPoints.find((p) => p.id === delivery.pickupPointId) || null
+  // ---- Delivery choices (029) -------------------------------------------
+  // Which ways are on is the shop's call (admin Delivery page); the area is
+  // the customer's, and it decides both the door-delivery price and which
+  // store a pickup comes from.
+  const {
+    data: options,
+    isLoading: optionsLoading,
+    isError: optionsFailed,
+    refetch: retryOptions,
+    isFetching: optionsFetching,
+  } = useDeliveryOptions()
+  const areas = options?.areas || []
+  const stores = options?.stores || []
+  const canDeliver = Boolean(options?.methods?.delivery)
+  const canPickup = Boolean(options?.methods?.pickup)
+  const noMethods = Boolean(options) && !canDeliver && !canPickup
 
-  // Areas are offered for the chosen state only, and only while area pricing
-  // is on (options.cities is empty when it's off).
-  const stateCities = (options?.cities || []).filter((c) => sameText(c.state, shippingInfo.state))
-  const needsArea = method === "delivery" && stateCities.length > 0
+  // The customer's choice — unless the shop has since switched it off.
+  const method =
+    delivery.method === "pickup"
+      ? canPickup || !canDeliver ? "pickup" : "delivery"
+      : canDeliver || !canPickup ? "delivery" : "pickup"
 
-  // A remembered choice can go stale (staff removed the area, or the state
-  // changed); treat a key that no longer matches anything as "not chosen".
-  const areaKey = (() => {
-    if (!needsArea) return ""
-    const k = delivery.areaKey
-    if (k === "state") return k
-    if (k.startsWith("city:")) {
-      return stateCities.some((c) => c.hasFallback && sameText(c.city, k.slice(5))) ? k : ""
-    }
-    if (k.startsWith("area:")) {
-      const id = k.slice(5)
-      return stateCities.some((c) => c.areas.some((a) => a.id === id)) ? k : ""
-    }
-    return ""
-  })()
-  const showCityInput = method === "delivery" && (!needsArea || areaKey === "state")
-
-  // Typing a town re-quotes, but not on every keystroke.
-  const debouncedCity = useDebounce(shippingInfo.city, 500)
-
-  const quoteReady =
+  // A remembered area that's gone (removed, switched off) counts as unchosen.
+  const area = areas.find((a) => a.id === delivery.areaId) || null
+  const areaStore = (area?.storeId && stores.find((st) => st.id === area.storeId)) || null
+  // Pickup comes from the area's own store. An area without one lets the
+  // customer choose; with a single store there's nothing to choose.
+  const pickupStore =
     method === "pickup"
-      ? Boolean(pickupPoint)
-      : Boolean(shippingInfo.state) && (!needsArea || Boolean(areaKey))
+      ? areaStore ||
+        stores.find((st) => st.id === delivery.pickupPointId) ||
+        (stores.length === 1 ? stores[0] : null)
+      : null
+  const needsStoreChoice = method === "pickup" && Boolean(area) && !areaStore && stores.length > 1
+
+  const quoteReady = Boolean(area) && (method === "delivery" || Boolean(pickupStore))
 
   const {
     data: quoteData,
@@ -133,15 +129,7 @@ export default function CheckoutPage() {
     isError: quoteFailed,
     refetch: retryQuote,
   } = useDeliveryQuote(
-    {
-      items,
-      method,
-      pickupPointId: pickupPoint?.id,
-      state: shippingInfo.state,
-      areaKey,
-      // Only matters on the "somewhere else in the state" path (see quoteDelivery).
-      city: method === "delivery" && areaKey === "state" ? debouncedCity : null,
-    },
+    { method, areaId: area?.id, pickupPointId: pickupStore?.id },
     { enabled: quoteReady && !optionsLoading }
   )
   // Never show a quote for a different choice than the one on screen.
@@ -156,13 +144,6 @@ export default function CheckoutPage() {
       ? { shippingFlat: quote.fee, freeShippingOver: quote.free_over }
       : { shippingFlat: 0, freeShippingOver: null }),
   })
-
-  // One pickup point: choose it for them.
-  useEffect(() => {
-    if (method === "pickup" && !pickupPoint && pickupPoints.length > 0) {
-      updateDelivery({ pickupPointId: pickupPoints[0].id })
-    }
-  }, [method, pickupPoint, pickupPoints, updateDelivery])
 
   // Guests may check out (011) — no login redirect. Signing in is offered as a
   // convenience below, never as a toll gate: forcing account creation on a
@@ -205,7 +186,7 @@ export default function CheckoutPage() {
   const cartSignature = `${items
     .map((i) => `${i.id}:${i.quantity}`)
     .sort()
-    .join('|')}#${coupon?.code || ''}#${method}|${pickupPoint?.id || ''}|${shippingInfo.state || ''}|${areaKey}`
+    .join('|')}#${coupon?.code || ''}#${method}|${area?.id || ''}|${pickupStore?.id || ''}`
 
   useEffect(() => {
     syncCartSignature(cartSignature)
@@ -236,8 +217,8 @@ export default function CheckoutPage() {
   const handleSelectAddress = (value) => {
     setSelectedAddressId(value)
     // A different address is a different area; make them pick again rather
-    // than keep a price for somewhere else.
-    updateDelivery({ areaKey: "" })
+    // than keep a price for somewhere else. Saved addresses don't store one.
+    updateDelivery({ areaId: "" })
     if (value === "new") {
       // Clear the address fields but keep who they are — retyping your own name
       // to use a second address would be silly.
@@ -265,25 +246,9 @@ export default function CheckoutPage() {
     updateShippingInfo({ [field]: value })
   }
 
-  const handleStateChange = (value) => {
-    // The area belonged to the old state; so did a city the area filled in.
-    const cityWasFromArea = delivery.areaKey.startsWith("area:") || delivery.areaKey.startsWith("city:")
-    updateShippingInfo({ state: value, ...(cityWasFromArea ? { city: "" } : {}) })
-    updateDelivery({ areaKey: "" })
-  }
-
-  const handleAreaChange = (key) => {
-    updateDelivery({ areaKey: key })
-    if (key.startsWith("area:")) {
-      const id = key.slice(5)
-      const c = stateCities.find((x) => x.areas.some((a) => a.id === id))
-      if (c) updateShippingInfo({ city: c.city })
-    } else if (key.startsWith("city:")) {
-      updateShippingInfo({ city: key.slice(5) })
-    } else if (stateCities.some((c) => sameText(c.city, shippingInfo.city))) {
-      // "Somewhere else in the state": a city we filled in is now wrong.
-      updateShippingInfo({ city: "" })
-    }
+  const handleAreaChange = (areaId) => {
+    // A store picked by hand belonged to the old area's situation.
+    updateDelivery({ areaId, pickupPointId: "" })
   }
 
   // Field-level problems, shown once they've tried to continue.
@@ -292,10 +257,9 @@ export default function CheckoutPage() {
     lastName: !shippingInfo.lastName,
     email: !shippingInfo.email,
     phone: !shippingInfo.phone,
+    area: !area,
     address: method === "delivery" && !shippingInfo.address,
-    state: method === "delivery" && !shippingInfo.state,
-    area: needsArea && !areaKey,
-    city: showCityInput && !shippingInfo.city,
+    store: method === "pickup" && Boolean(area) && !pickupStore,
   }
   const invalid = (field) => showErrors && missing[field]
 
@@ -307,8 +271,12 @@ export default function CheckoutPage() {
       toast({
         title: "Missing information",
         description: missing.area
-          ? "Choose your area so we can work out delivery."
-          : "Fill in the fields marked in red.",
+          ? method === "pickup"
+            ? "Choose your area so we know which store to send your order to."
+            : "Choose your area so we can work out delivery."
+          : missing.store
+            ? "Choose the store you'll collect from."
+            : "Fill in the fields marked in red.",
         variant: "destructive",
       })
       return
@@ -335,9 +303,8 @@ export default function CheckoutPage() {
         shippingInfo,
         delivery: {
           method,
-          pickupPointId: pickupPoint?.id || null,
-          areaKey,
-          location: method === "delivery" ? delivery.location : null,
+          areaId: area.id,
+          pickupPointId: pickupStore?.id || null,
         },
         orderNotes,
         couponCode: coupon?.code || null,
@@ -358,14 +325,9 @@ export default function CheckoutPage() {
 
   // What the summary says under "Delivery".
   const deliveryNote = (() => {
-    if (method === "pickup") return pickupPoint ? `Collect from ${pickupPoint.name}` : "Choose a store"
-    if (!shippingInfo.state) return "Choose your state to see the price"
-    if (needsArea && !areaKey) return "Choose your area to see the price"
-    if (!quote?.ok) return null
-    const place =
-      quote.area_name ||
-      (quote.matched_by === "city" && quote.city ? `Elsewhere in ${quote.city}` : shippingInfo.state)
-    return `${place} · ${formatWeight(quote.weight_kg)}`
+    if (!area) return method === "pickup" ? "Choose your area to see your store" : "Choose your area to see the price"
+    if (method === "pickup") return pickupStore ? `Collect from ${pickupStore.name}` : "Choose a store"
+    return `To ${area.name}, Ibadan`
   })()
 
   return (
@@ -403,11 +365,45 @@ export default function CheckoutPage() {
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 flex flex-col gap-8">
-            {/* Delivery or pickup. Only a question when there's a store to
-                collect from — otherwise it's just delivery. */}
-            {canPickup && (
+            {/* Nothing to choose from: the delivery choices didn't load, or the
+                shop has both ways switched off. Either way, say so plainly
+                instead of letting someone fill in a form they can't submit. */}
+            {optionsFailed && !options && (
+              <Alert variant="destructive">
+                <CircleAlert />
+                <AlertDescription className="flex flex-col gap-2">
+                  <span>Couldn&apos;t load the delivery options.</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    onClick={() => retryOptions()}
+                    disabled={optionsFetching}
+                  >
+                    <RotateCw data-icon="inline-start" />
+                    Try again
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            {noMethods && (
+              <Alert>
+                <CircleAlert />
+                <AlertDescription>
+                  We&apos;re not taking delivery or pickup orders online right now.
+                  {options?.supportPhone ? ` Call us on ${options.supportPhone} to order.` : " Please check back soon."}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Door or store. Only a question when the shop offers both — and
+                held open while the options load, so the form below doesn't
+                jump down when the choice appears. */}
+            {optionsLoading && <Skeleton className="h-36 w-full rounded-lg" aria-hidden="true" />}
+            {canDeliver && canPickup && (
               <section className="bg-card rounded-lg border p-6" aria-labelledby="method-heading">
-                <h2 id="method-heading" className="text-xl font-semibold mb-4">Delivery or pickup</h2>
+                <h2 id="method-heading" className="text-xl font-semibold mb-4">How do you want your order?</h2>
                 <RadioGroup
                   value={method}
                   onValueChange={(v) => updateDelivery({ method: v })}
@@ -417,20 +413,20 @@ export default function CheckoutPage() {
                     value="delivery"
                     id="method-delivery"
                     icon={Truck}
-                    title="Deliver to me"
-                    description="Priced by your area and how heavy the order is"
+                    title="Deliver to my door"
+                    description="Within Ibadan. The price depends on your area."
                   />
                   <MethodOption
                     value="pickup"
                     id="method-pickup"
                     icon={Store}
-                    title="Collect from our store"
+                    title="Pick up at a store"
                     description={
-                      pickupPoints.length === 1
-                        ? `${pickupPoints[0].name}, ${pickupPoints[0].city} — ${
-                            Number(pickupPoints[0].fee) > 0 ? formatNaira(pickupPoints[0].fee) : "free"
+                      stores.length === 1
+                        ? `${stores[0].name}, ${
+                            Number(stores[0].fee) > 0 ? `${formatNaira(stores[0].fee)} fee` : "free"
                           }`
-                        : "Choose a store below"
+                        : "From the store nearest your area"
                     }
                   />
                 </RadioGroup>
@@ -525,69 +521,60 @@ export default function CheckoutPage() {
                   </Field>
                 </div>
 
+                {/* Compulsory either way: it prices door delivery and decides
+                    which store a pickup goes to. */}
+                <Field data-invalid={invalid("area") || undefined}>
+                  <FieldLabel htmlFor="area">Your area in Ibadan *</FieldLabel>
+                  <AreaPicker
+                    id="area"
+                    value={area?.id || ""}
+                    onChange={handleAreaChange}
+                    areas={areas}
+                    stores={stores}
+                    method={method}
+                    invalid={invalid("area")}
+                  />
+                  <FieldDescription>
+                    {method === "pickup"
+                      ? "We'll send your order to the store nearest your area."
+                      : "We deliver within Ibadan. The price depends on your area."}
+                  </FieldDescription>
+                </Field>
+
                 {method === "pickup" ? (
                   <>
-                    {pickupPoints.length > 1 && (
-                      <Field>
+                    {needsStoreChoice && (
+                      <Field data-invalid={invalid("store") || undefined}>
                         <FieldLabel htmlFor="pickup-point">Store *</FieldLabel>
                         <Select
-                          value={pickupPoint?.id || ""}
+                          value={pickupStore?.id || ""}
                           onValueChange={(v) => updateDelivery({ pickupPointId: v })}
                         >
-                          <SelectTrigger id="pickup-point">
+                          <SelectTrigger id="pickup-point" aria-invalid={invalid("store") || undefined}>
                             <SelectValue placeholder="Choose a store" />
                           </SelectTrigger>
                           <SelectContent>
-                            {pickupPoints.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name}, {p.city}
+                            {stores.map((st) => (
+                              <SelectItem key={st.id} value={st.id}>
+                                {st.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </Field>
                     )}
-                    <PickupPointCard point={pickupPoint} />
-                    <p className="text-sm text-muted-foreground">
-                      We&apos;ll email you when your order is ready, with a pickup code to show
-                      at the store.
-                    </p>
+                    {pickupStore && (
+                      <>
+                        <PickupPointCard point={pickupStore} />
+                        <p className="text-sm text-muted-foreground">
+                          We&apos;ll email you when your order is ready, with a pickup code to show
+                          at the store.
+                        </p>
+                      </>
+                    )}
                   </>
                 ) : (
                   <>
-                    <Field data-invalid={invalid("state") || undefined}>
-                      <FieldLabel htmlFor="state">State *</FieldLabel>
-                      <Select value={shippingInfo.state} onValueChange={handleStateChange}>
-                        <SelectTrigger id="state" aria-invalid={invalid("state") || undefined}>
-                          <SelectValue placeholder="Select state" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {NIGERIAN_STATES.map((state) => (
-                            <SelectItem key={state} value={state}>
-                              {state}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-
-                    {needsArea && (
-                      <Field data-invalid={invalid("area") || undefined}>
-                        <FieldLabel htmlFor="area">Area *</FieldLabel>
-                        <AreaPicker
-                          id="area"
-                          value={areaKey}
-                          onChange={handleAreaChange}
-                          cities={stateCities}
-                          state={shippingInfo.state}
-                          invalid={invalid("area")}
-                        />
-                        <FieldDescription>
-                          The delivery price depends on your area.
-                        </FieldDescription>
-                      </Field>
-                    )}
-
                     <Field data-invalid={invalid("address") || undefined}>
                       <FieldLabel htmlFor="address">Street address *</FieldLabel>
                       <Input
@@ -618,38 +605,6 @@ export default function CheckoutPage() {
                         maxLength={200}
                       />
                       <FieldDescription>Helps the rider find you faster.</FieldDescription>
-                    </Field>
-
-                    <div className={cn("grid grid-cols-1 gap-4", showCityInput && "sm:grid-cols-2")}>
-                      {showCityInput && (
-                        <Field data-invalid={invalid("city") || undefined}>
-                          <FieldLabel htmlFor="city">City or town *</FieldLabel>
-                          <Input
-                            id="city"
-                            autoComplete="address-level2"
-                            value={shippingInfo.city}
-                            onChange={(e) => handleShippingChange('city', e.target.value)}
-                            aria-invalid={invalid("city") || undefined}
-                          />
-                        </Field>
-                      )}
-                      <Field>
-                        <FieldLabel htmlFor="zip">Postal code (optional)</FieldLabel>
-                        <Input
-                          id="zip"
-                          autoComplete="postal-code"
-                          value={shippingInfo.zip}
-                          onChange={(e) => handleShippingChange('zip', e.target.value)}
-                        />
-                      </Field>
-                    </div>
-
-                    <Field>
-                      <FieldLabel>Your location</FieldLabel>
-                      <LocationButton
-                        value={delivery.location}
-                        onChange={(location) => updateDelivery({ location })}
-                      />
                     </Field>
                   </>
                 )}
@@ -703,9 +658,6 @@ export default function CheckoutPage() {
                         you pick an area looks arbitrary unless you say why. */}
                     {deliveryNote && (
                       <span className="text-xs text-muted-foreground">{deliveryNote}</span>
-                    )}
-                    {method === "delivery" && quote?.ok && quote.estimate && (
-                      <span className="text-xs text-muted-foreground">{quote.estimate}</span>
                     )}
                   </div>
                   {quoteReady && quoting && !quote ? (
@@ -780,7 +732,7 @@ export default function CheckoutPage() {
                     type="submit"
                     className="w-full"
                     size="lg"
-                    disabled={createOrder.isPending || (quoteReady && quoting)}
+                    disabled={createOrder.isPending || (quoteReady && quoting) || noMethods}
                   >
                     {createOrder.isPending ? "Creating order…" : "Review order"}
                   </Button>

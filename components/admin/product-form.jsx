@@ -57,7 +57,8 @@ const EMPTY = {
   unit_type: "piece",
   stock: 0,
   low_stock_threshold: 10,
-  // Shown in kg, stored as weight_grams (028). Prices delivery by weight.
+  // Shown in kg, stored as weight_grams. Kept for staff reference; since 029
+  // delivery is priced by area, not weight.
   weight_kg: "",
   allow_backorder: false,
   is_active: true,
@@ -461,7 +462,7 @@ export default function ProductForm({ product }) {
                       </span>
                     </div>
                     <FieldDescription>
-                      Packed weight, used to price delivery: 25 for a 25 kg bag, 0.5 for a 500 g tin.
+                      Packed weight, for your records: 25 for a 25 kg bag, 0.5 for a 500 g tin.
                     </FieldDescription>
                   </Field>
                 )}

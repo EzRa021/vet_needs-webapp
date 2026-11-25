@@ -4,7 +4,7 @@ import { NextResponse, after } from 'next/server'
 import { sendNewOrderAlert } from '@/lib/email/staff-alerts'
 import { calcTotals } from '@/lib/pricing'
 import { quoteDelivery } from '@/lib/delivery-server'
-import { cleanLocation, isUuid, newPickupCode, parseAreaKey } from '@/lib/delivery'
+import { isUuid, newPickupCode } from '@/lib/delivery'
 import { allow, TOO_MANY } from '@/lib/rate-limit'
 
 // POST /api/checkout/create-order - Create a new order
@@ -37,7 +37,7 @@ export async function POST(request) {
 
     const body = await request.json()
     const { items, shippingInfo, delivery, orderNotes, couponCode, idempotencyKey } = body
-    // Delivery to an address, or collection from a pickup point (028).
+    // Delivery to the door, or collection from a store (028/029).
     const method = delivery?.method === 'pickup' ? 'pickup' : 'delivery'
 
     // Idempotency key: optional, but when present it makes a repeated submit
@@ -85,11 +85,12 @@ export async function POST(request) {
     }
 
     // Validate shipping info. A pickup has no address to deliver to — only
-    // who's collecting and how to reach them.
+    // who's collecting and how to reach them. The city and state come from
+    // the chosen area (029), not from the form.
     const required =
       method === 'pickup'
         ? ['firstName', 'lastName', 'email', 'phone']
-        : ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state']
+        : ['firstName', 'lastName', 'email', 'phone', 'address']
     if (!shippingInfo || required.some((f) => !shippingInfo[f] || typeof shippingInfo[f] !== 'string')) {
       return NextResponse.json({ error: 'Missing required shipping information' }, { status: 400 })
     }
@@ -120,7 +121,7 @@ export async function POST(request) {
     const ids = requested.map((i) => i.id)
     const { data: dbItems, error: itemsError } = await supabase
       .from('items')
-      .select('id, name, price, stock, unit_type, weight_grams, vat_enabled, vat_rate, vat_inclusive')
+      .select('id, name, price, stock, unit_type, vat_enabled, vat_rate, vat_inclusive')
       .in('id', ids)
 
     if (itemsError) {
@@ -130,9 +131,6 @@ export async function POST(request) {
 
     const byId = new Map((dbItems || []).map((i) => [i.id, i]))
     const orderItems = []
-    // Catalogue weights for delivery pricing (028). Not stored on the line —
-    // the order keeps the total in its delivery snapshot instead.
-    const weightLines = []
     for (const { id, quantity } of requested) {
       const dbItem = byId.get(id)
       if (!dbItem) {
@@ -151,12 +149,6 @@ export async function POST(request) {
           { status: 409 }
         )
       }
-      weightLines.push({
-        name: dbItem.name,
-        quantity,
-        unit_type: dbItem.unit_type,
-        weight_grams: dbItem.weight_grams,
-      })
       orderItems.push({
         id: dbItem.id,
         name: dbItem.name,
@@ -207,19 +199,14 @@ export async function POST(request) {
       discount = Number(result.discount) || 0
     }
 
-    // Authoritative delivery fee (028), worked out server-side from the area or
-    // state, the pickup point, and the order's weight from the catalogue —
-    // never from the browser, which would let a customer quote themselves the
-    // Bodija price for twenty bags to Lagos.
-    const { areaId, unlistedCity } = parseAreaKey(delivery?.areaKey)
+    // Authoritative delivery fee (029): the chosen area's price for door
+    // delivery, or its store's fee for pickup — looked up here, never taken
+    // from the browser, which would let a customer quote themselves Bodija's
+    // price for Moniya.
     const quote = await quoteDelivery({
       method,
+      areaId: isUuid(delivery?.areaId) ? delivery.areaId : null,
       pickupPointId: isUuid(delivery?.pickupPointId) ? delivery.pickupPointId : null,
-      state: shippingInfo.state || null,
-      areaId,
-      unlistedCity,
-      city: method === 'delivery' ? shippingInfo.city : null,
-      lines: weightLines,
     })
     if (!quote.ok) {
       // The checkout shows the same reason before the button is pressed, so
@@ -235,10 +222,10 @@ export async function POST(request) {
 
     const clip = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '')
     const landmark = method === 'delivery' ? clip(shippingInfo.landmark, 200) : ''
-    // A picked area decides the city and state, so the address on the order
-    // can't say Oyo while the fee is a Lagos one.
-    const city = quote.area?.city || clip(shippingInfo.city, 80)
-    const state = quote.area?.state || clip(shippingInfo.state, 60)
+    // The area decides the city and state, so the address on the order always
+    // matches the price that was charged.
+    const city = quote.area.city
+    const state = quote.area.state
 
     // Kept in the fixed line layout parseShippingAddress() reads: name first,
     // "City, State" just above the country, Email/Phone last.
@@ -260,7 +247,7 @@ export async function POST(request) {
             shippingInfo.address2 || null,
             landmark ? `Landmark: ${landmark}` : null,
             quote.area ? `Area: ${quote.area.name}` : null,
-            `${city}, ${state}${shippingInfo.zip ? ' ' + shippingInfo.zip : ''}`,
+            `${city}, ${state}`,
             shippingInfo.country || 'NG',
             `Email: ${shippingInfo.email}`,
             `Phone: ${shippingInfo.phone}`,
@@ -272,19 +259,10 @@ export async function POST(request) {
     // order page; editing prices later never rewrites it.
     const deliverySnapshot = {
       method,
-      weight_kg: quote.weightKg,
-      ...(quote.missingWeight.length ? { missing_weight: quote.missingWeight.slice(0, 20) } : {}),
-      band: quote.band,
-      zone: quote.zone,
       area: quote.area,
-      matched_by: quote.matchedBy,
-      estimate: quote.estimate,
+      fee: quote.fee,
       ...(method === 'delivery'
-        ? {
-            landmark: landmark || null,
-            location: cleanLocation(delivery?.location),
-            ...(unlistedCity && !quote.area ? { unlisted_city: clip(unlistedCity, 80) } : {}),
-          }
+        ? { landmark: landmark || null }
         : {
             pickup_point: {
               id: point.id,

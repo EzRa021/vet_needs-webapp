@@ -14,8 +14,9 @@ const EDITABLE = {
   support_email: { type: 'string', label: 'Support email' },
   support_phone: { type: 'string', label: 'Support phone' },
   free_shipping_threshold: { type: 'number', label: 'Free shipping over', nullable: true },
-  // 028: switched from the Delivery page, once areas have prices.
-  area_pricing_enabled: { type: 'boolean', label: 'Area pricing' },
+  // 029: switched from the Delivery page.
+  doorstep_delivery_enabled: { type: 'boolean', label: 'Door delivery' },
+  store_pickup_enabled: { type: 'boolean', label: 'Store pickup' },
   // Private (never is_public): who gets new-order emails. Read by
   // lib/email/staff-alerts.js with the service role.
   order_alert_email: { type: 'emails', label: 'Order alert email' },
@@ -117,6 +118,26 @@ export async function PATCH(request) {
 
     if (updates.length === 0) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+    }
+
+    // Door delivery and store pickup can't both be off (029): checkout would
+    // have no way to get an order to anyone. Check against what's saved, since
+    // the Delivery page switches one at a time.
+    const METHOD_KEYS = ['doorstep_delivery_enabled', 'store_pickup_enabled']
+    if (updates.some((u) => METHOD_KEYS.includes(u.key))) {
+      const { data: saved } = await auth.supabase
+        .from('settings')
+        .select('key, value')
+        .in('key', METHOD_KEYS)
+      const after = Object.fromEntries(METHOD_KEYS.map((k) => [k, true]))
+      for (const row of saved || []) after[row.key] = row.value !== false
+      for (const u of updates) if (METHOD_KEYS.includes(u.key)) after[u.key] = u.value
+      if (!after.doorstep_delivery_enabled && !after.store_pickup_enabled) {
+        return NextResponse.json(
+          { error: 'Keep door delivery or store pickup on. With both off, customers can’t check out.' },
+          { status: 400 }
+        )
+      }
     }
 
     // settings.value is jsonb — Supabase serialises the JS value for us.

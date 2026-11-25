@@ -20,16 +20,15 @@ const emptyShipping = {
 // submit (double-click, retry, refresh) onto the original order, so the key
 // must stay STABLE across those retries — regenerate it only when the shopper
 // genuinely means a different order (cart edited, or previous one paid for).
-// How the order reaches the customer (028).
-//   method         'delivery' | 'pickup'
-//   pickupPointId  the store they'll collect from
-//   areaKey        the area picker's choice — see parseAreaKey() in lib/delivery.js
-//   location       { lat, lng, accuracy } from "Use my current location", or null
+// How the order reaches the customer (029).
+//   method         'delivery' (to the door) | 'pickup' (from a store)
+//   areaId         the customer's Ibadan area — compulsory for both: it sets
+//                  the delivery price, and which store they collect from
+//   pickupPointId  the store chosen by hand, only when the area has none
 const emptyDelivery = {
   method: 'delivery',
+  areaId: '',
   pickupPointId: '',
-  areaKey: '',
-  location: null,
 }
 
 const newKey = () =>

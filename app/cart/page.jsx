@@ -12,8 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useCartStore, maxQuantityFor } from "@/stores/cartStore"
 import { useCartSync } from "@/stores/cartSync"
 import { useCheckoutStore } from "@/stores/checkoutStore"
-import { useStoreSettings, useDeliveryOptions, useDeliveryQuote } from "@/stores/shopStore"
-import { useDefaultAddress } from "@/stores/addressStore"
+import { useStoreSettings } from "@/stores/shopStore"
 import CartChangesNotice from "@/components/cart-changes-notice"
 import CouponInput from "@/components/coupon-input"
 import QuantityInput from "@/components/quantity-input"
@@ -29,39 +28,15 @@ export default function CartPage() {
   // weeks old, and its prices/stock with it.
   const { changes, dismiss, hasBlockers } = useCartSync()
 
-  // The cart doesn't know the destination — but if they're signed in with a
-  // default address, it does. Quoting that state beats showing the nationwide
-  // rate and then changing the number at checkout: a total that moves after
-  // you've decided to buy is the thing shoppers actually resent.
-  const defaultAddress = useDefaultAddress()
-  const quoteState = defaultAddress?.state || null
-
-  // With area pricing on (028), Ibadan and Lagos prices depend on the area,
-  // which only checkout asks for. Quoting the state price there would show a
-  // number checkout then contradicts, so the cart says "at checkout" instead.
-  const { data: deliveryOptions } = useDeliveryOptions()
-  const areaPriced =
-    Boolean(deliveryOptions?.areaPricing) &&
-    (!quoteState ||
-      (deliveryOptions.cities || []).some(
-        (c) => c.state.toLowerCase() === quoteState.toLowerCase()
-      ))
-  const { data: quote } = useDeliveryQuote(
-    { items, method: "delivery", state: quoteState, areaKey: "" },
-    { enabled: Boolean(deliveryOptions) && !areaPriced }
-  )
-  const estimate = !areaPriced && quote?.ok ? quote : null
-  const deliveryLater = areaPriced || (quote && !quote.ok)
-
-  const shippingConfig = estimate
-    ? { shippingFlat: estimate.fee, freeShippingOver: estimate.free_over }
-    : deliveryLater
-      ? { shippingFlat: 0, freeShippingOver: null }
-      : pricingConfig
-
-  // Preview only — the server recomputes discount + shipping from the order's
-  // own state when it's created.
-  const totals = getCartTotals({ discount: coupon?.discount || 0, ...shippingConfig })
+  // Delivery depends on the customer's area, or the store they collect from
+  // (029), and only checkout asks for those — so the cart leaves delivery out
+  // of the total rather than show a number checkout then contradicts. The
+  // free-delivery nudge still works from the shop's threshold.
+  const totals = getCartTotals({
+    discount: coupon?.discount || 0,
+    ...pricingConfig,
+    shippingFlat: 0,
+  })
 
   return (
     <div className="container px-4 py-8 md:px-6 md:py-12">
@@ -227,24 +202,13 @@ export default function CartPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex flex-col">
                       <span className="text-muted-foreground">Delivery</span>
-                      {/* Say what the number is based on. Without this it reads
-                          as a fixed price, and changing it at checkout looks
-                          like a bait-and-switch rather than a better estimate. */}
+                      {/* Say why there's no number yet, so the total doesn't
+                          read as final. */}
                       <span className="text-xs text-muted-foreground">
-                        {deliveryLater
-                          ? "Worked out at checkout from your area"
-                          : quoteState
-                            ? `Estimated for ${quoteState}`
-                            : "Confirmed at checkout"}
+                        Worked out at checkout from your area
                       </span>
                     </div>
-                    {deliveryLater ? (
-                      <span className="text-muted-foreground" aria-label="Worked out at checkout">—</span>
-                    ) : totals.freeShipping.qualifies ? (
-                      <span className="font-medium text-success">Free</span>
-                    ) : (
-                      <span className="tabular-nums">{formatNaira(totals.shipping)}</span>
-                    )}
+                    <span className="text-muted-foreground" aria-label="Worked out at checkout">—</span>
                   </div>
 
                   {/* Free-delivery nudge, driven by the admin's threshold */}
@@ -288,7 +252,7 @@ export default function CartPage() {
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between font-medium text-lg">
-                    <span>{deliveryLater ? "Total before delivery" : "Total"}</span>
+                    <span>Total before delivery</span>
                     <span className="tabular-nums">{formatNaira(totals.total)}</span>
                   </div>
 
